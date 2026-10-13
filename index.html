@@ -169,8 +169,9 @@
       <div class="seg" id="players" role="radiogroup" aria-label="Players on court"></div>
       <div class="toggles">
         <label class="toggle"><span>Include Serve<small>10 min serve block</small></span><input type="checkbox" id="serve"></label>
-        <label class="toggle"><span>Include Game time<small>20 min of match play</small></span><input type="checkbox" id="game"></label>
       </div>
+      <h2 style="margin-top:12px">Games at the end</h2>
+      <div class="seg" id="game" role="radiogroup" aria-label="Games at the end"></div>
       <div class="btn-row" style="margin-top:14px">
         <button class="btn" id="generate">Generate 2-hour plan</button>
       </div>
@@ -205,14 +206,14 @@
 
 <script type="module">
 import { DRILLS } from "./drills.js";
-import { LEVELS, SESSION_MINUTES, GROUP_SIZES, buildSession, planToText, noteFor, groupFit } from "./planner.js";
+import { LEVELS, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, buildSession, planToText, noteFor, groupFit } from "./planner.js";
 import { loadDrills, loadHistory, saveSession, recentDrillIds } from "./db.js";
 import { courtSVG, DIAGRAM_LEGEND } from "./diagram.js";
 
 const $ = (id) => document.getElementById(id);
 const PREFS_KEY = "tennis-planner:prefs";
 const CAT_COLORS = { warmup: "#e0a800", forehand: "#3f7d20", backhand: "#6b9e3a", net: "#7a5cc2", movement: "#7a5cc2",
-  rally: "#c2410c", serve: "#0e7490", game: "#be185d", cooldown: "#64748b", break: "var(--break)" };
+  rally: "#c2410c", combo: "#b45309", serve: "#0e7490", game: "#be185d", cooldown: "#64748b", break: "var(--break)" };
 
 const state = { drills: DRILLS, online: false, history: [], plan: null, opts: null, saved: false };
 
@@ -225,7 +226,8 @@ function writePrefs(p) {
 }
 
 // ── settings UI ──
-const prefs = { levels: [1], serve: true, game: true, players: 6, ...readPrefs() };
+const prefs = { levels: [1], serve: true, game: 20, players: 6, ...readPrefs() };
+if (typeof prefs.game === "boolean") prefs.game = prefs.game ? 20 : 0; // prefs saved before games had a length
 LEVELS.forEach((name, i) => {
   const b = document.createElement("button");
   b.className = "chip";
@@ -247,13 +249,22 @@ GROUP_SIZES.forEach((n) => {
   b.onclick = () => $("players").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", x === b));
   $("players").append(b);
 });
+GAME_OPTIONS.forEach((n) => {
+  const b = document.createElement("button");
+  b.textContent = n ? `${n} min` : "Off";
+  b.dataset.game = n;
+  b.setAttribute("role", "radio");
+  b.setAttribute("aria-checked", n === prefs.game);
+  b.onclick = () => $("game").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", x === b));
+  $("game").append(b);
+});
 $("serve").checked = prefs.serve;
-$("game").checked = prefs.game;
 
 function currentOpts() {
   const levels = [...document.querySelectorAll("#levels .chip[aria-pressed=true]")].map((b) => +b.dataset.level);
   const players = +($("players").querySelector("[aria-checked=true]")?.dataset.players || 6);
-  return { levels, players, serve: $("serve").checked, game: $("game").checked };
+  const game = +($("game").querySelector("[aria-checked=true]")?.dataset.game ?? 20);
+  return { levels, players, serve: $("serve").checked, game };
 }
 function syncGenerate() {
   const none = !currentOpts().levels.length;
@@ -306,7 +317,7 @@ function render() {
   const { plan, opts } = state;
   const mixed = Math.max(...opts.levels) > Math.min(...opts.levels);
   $("sum-title").textContent = opts.levels.map((l) => LEVELS[l]).join(" + ");
-  $("sum-meta").textContent = `${opts.players} players · ${SESSION_MINUTES} min · Serve ${opts.serve ? "on" : "off"} · Game ${opts.game ? "on" : "off"}`;
+  $("sum-meta").textContent = `${opts.players} players · ${SESSION_MINUTES} min · Serve ${opts.serve ? "10 min" : "off"} · Games ${opts.game ? `${opts.game} min` : "off"}`;
   $("bar").innerHTML = plan.map((it) => {
     const c = CAT_COLORS[it.kind === "break" ? "break" : it.drill?.category] || "var(--muted)";
     return `<i style="width:${(it.minutes / SESSION_MINUTES) * 100}%;background:${c}" title="${esc(it.label)}"></i>`;
@@ -360,7 +371,7 @@ function renderHistory() {
 }
 
 // ── drill library: every drill the selected levels can do, by category ──
-const CATEGORIES = [["all", "All"], ["warmup", "Warm-up"], ["forehand", "Forehand"], ["backhand", "Backhand"], ["net", "Net"],
+const CATEGORIES = [["all", "All"], ["warmup", "Warm-up"], ["forehand", "Forehand"], ["backhand", "Backhand"], ["net", "Net"], ["combo", "Mixed"],
   ["movement", "Movement"], ["rally", "Rally"], ["serve", "Serve"], ["game", "Game"], ["cooldown", "Cool-down"]];
 let libCat = "all";
 function renderLibrary() {

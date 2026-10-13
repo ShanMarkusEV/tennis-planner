@@ -35,7 +35,8 @@ export async function saveSession({ levels, serve, game, players, plan }) {
     body: JSON.stringify({
       levels,
       serve,
-      game,
+      game: game > 0,
+      game_minutes: game,
       players,
       plan: plan.map((it) => ({
         start: it.start,

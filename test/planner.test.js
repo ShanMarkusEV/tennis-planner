@@ -1,6 +1,6 @@
 // Sanity checks for buildSession across every level combo × toggle × seed.
 import assert from "node:assert/strict";
-import { buildSession, totalMinutes, planToText, noteFor, groupFit, SESSION_MINUTES, GROUP_SIZES } from "../planner.js";
+import { buildSession, totalMinutes, planToText, noteFor, groupFit, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS } from "../planner.js";
 import { DRILLS } from "../drills.js";
 
 const combos = [];
@@ -10,7 +10,7 @@ let n = 0;
 for (const levels of combos)
  for (const players of GROUP_SIZES)
   for (const serve of [false, true])
-    for (const game of [false, true])
+    for (const game of GAME_OPTIONS)
       for (let seed = 1; seed <= 10; seed++) {
         const plan = buildSession({ levels, serve, game, players, drills: DRILLS, seed });
         const ctx = JSON.stringify({ levels, players, serve, game, seed });
@@ -23,14 +23,22 @@ for (const levels of combos)
         assert.equal(new Set(ids).size, ids.length, `repeat ${ctx}`);
         assert.ok(drills.every((p) => p.drill.minLevel <= lo), `too hard ${ctx}`);
         assert.equal(drills.some((p) => p.drill.category === "serve"), serve, `serve ${ctx}`);
-        assert.equal(drills.some((p) => p.drill.category === "game"), game, `game ${ctx}`);
+        const games = drills.filter((p) => p.drill.category === "game");
+        assert.equal(games.length, game ? 1 : 0, `game ${ctx}`);
+        if (game) assert.equal(games[0].minutes, game, `game minutes ${ctx}`);
+        // the playbook order
+        const PLAYBOOK = ["Warm-up", "Fed ball · Forehand", "Fed ball · Backhand", "Racket feed across the net", "Volley", "Mixed technique",
+          ...(serve ? ["Serve"] : []), ...(game ? ["Games"] : [])];
+        assert.deepEqual(drills.map((p) => p.label), PLAYBOOK, `order ${ctx}`);
+        const fed = drills.filter((p) => p.label.startsWith("Fed ball")).reduce((a, p) => a + p.minutes, 0);
+        assert.ok(drills.every((p) => p.label.startsWith("Fed ball") || p.label === "Games" || fed >= p.minutes), `fed ball is the main block ${ctx}`);
+        assert.equal(drills.find((p) => p.label === "Mixed technique").drill.category, "combo", ctx);
         assert.equal(plan.filter((p) => p.kind === "break").length, 2, `breaks ${ctx}`);
         for (const p of drills) {
           if (p.drill.category === "serve") assert.ok(p.minutes <= 10, `serve over 10 min ${ctx}`);
           assert.ok(groupFit(p.drill, players) > 0, `${p.drill.id} unsuitable for ${players} players ${ctx}`);
         }
         assert.equal(plan[0].label, "Warm-up", ctx);
-        assert.equal(plan.at(-1).label, "Cool-down", ctx);
         plan.forEach((p, i) => {
           assert.ok(p.minutes % 5 === 0 && p.minutes >= 5, `minutes ${ctx}`);
           if (i) assert.equal(p.start, plan[i - 1].start + plan[i - 1].minutes, `start ${ctx}`);
@@ -46,8 +54,8 @@ for (const levels of combos)
       }
 
 // Same seed → same plan; different seeds → variety.
-const a = buildSession({ levels: [1, 2], serve: true, game: true, drills: DRILLS, seed: 7 });
-const b = buildSession({ levels: [1, 2], serve: true, game: true, drills: DRILLS, seed: 7 });
+const a = buildSession({ levels: [1, 2], serve: true, game: 20, drills: DRILLS, seed: 7 });
+const b = buildSession({ levels: [1, 2], serve: true, game: 20, drills: DRILLS, seed: 7 });
 assert.deepEqual(a, b);
 
 // Recent drills are picked noticeably less often.
@@ -60,7 +68,7 @@ const target = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
 const count = (recent) => {
   let hits = 0;
   for (let seed = 1; seed <= 300; seed++) {
-    const p = buildSession({ levels: [1, 2], serve: false, game: false, drills: DRILLS, recentDrillIds: recent, seed });
+    const p = buildSession({ levels: [1, 2], serve: false, game: 0, drills: DRILLS, recentDrillIds: recent, seed });
     if (p.some((x) => x.drill?.id === target)) hits++;
   }
   return hits;

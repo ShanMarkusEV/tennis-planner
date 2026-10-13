@@ -5,7 +5,8 @@ export const SESSION_MINUTES = 120;
 export const GROUP_SIZES = [4, 6, 8]; // players on one court with one coach
 
 const UNIT = 5; // every block is a multiple of 5 minutes
-const FIXED = { warmup: 10, cooldown: 5, break: 5, breaks: 2, serve: 10, game: 20 }; // serve is capped at 10 min
+const FIXED = { warmup: 10, break: 5, breaks: 2, serve: 10 }; // serve is capped at 10 min
+export const GAME_OPTIONS = [0, 15, 20]; // game time: off, 15 or 20 min
 const RECENT_WEIGHT = 0.15; // drills used in recent sessions are picked far less
 
 // Small seeded PRNG (mulberry32) so Shuffle is reproducible.
@@ -20,30 +21,19 @@ function rng(seed) {
   };
 }
 
-// Technical slots, in teaching order. Weights decide how the free minutes
-// are split; static work gets more time for lower groups, live/moving for higher.
-function technicalSlots(lo, hi, units) {
-  const low = hi <= 1;
-  const slots = [
-    { key: "fh-static", label: "Forehand", categories: ["forehand"], type: "static", w: low ? 1.2 : 0.8 },
-    { key: "fh-moving", label: "Forehand", categories: ["forehand"], type: "moving", w: low ? 0.8 : 1.2 },
-    { key: "bh-static", label: "Backhand", categories: ["backhand"], type: "static", w: low ? 1.2 : 0.8 },
-    { key: "bh-moving", label: "Backhand", categories: ["backhand"], type: "moving", w: low ? 0.8 : 1.2 },
-    {
-      key: "net",
-      label: hi === 0 ? "Movement" : "Net",
-      // Newbie-only groups do footwork instead of volleys; mixed groups with
-      // newbies may get either.
-      categories: hi === 0 ? ["movement"] : lo === 0 ? ["net", "movement"] : ["net"],
-      type: null,
-      w: 0.9,
-    },
+// The coach's playbook, in order. Weights decide how the technical minutes are
+// split; the fed-ball block gets the most because that's where technique is
+// corrected.
+//   1 Warm-up · 2 Fed ball (FH + BH) · 3 Racket feed across the net · 4 Volley
+//   5 Mixed technique · 6 Serve · 7 Games
+function technicalSlots() {
+  return [
+    { key: "feed-fh", label: "Fed ball · Forehand", categories: ["forehand"], type: "static", w: 1.25 },
+    { key: "feed-bh", label: "Fed ball · Backhand", categories: ["backhand"], type: "static", w: 1.25 },
+    { key: "racket-feed", label: "Racket feed across the net", categories: ["forehand", "backhand"], type: "moving", w: 1 },
+    { key: "volley", label: "Volley", categories: ["net"], type: null, w: 1 },
+    { key: "mixed", label: "Mixed technique", categories: ["combo"], type: null, w: 1 },
   ];
-  // With enough time, add a live rally block to tie the strokes together.
-  // Live forehand/backhand rally drills also qualify here.
-  if (units >= 15)
-    slots.push({ key: "rally", label: "Rally", categories: ["rally", "forehand", "backhand"], type: "live", w: lo >= 2 ? 1.2 : 0.9 });
-  return slots;
 }
 
 // Split `units` across slots by weight (largest remainder), min 2 units each.
@@ -92,8 +82,8 @@ function pick(drills, slot, lo, hi, used, recent, players, rand) {
 /**
  * @param {object} o
  * @param {number[]} o.levels          selected level indexes (0..3), at least one
- * @param {boolean} o.serve            include a serve block
- * @param {boolean} o.game             include game time
+ * @param {boolean} o.serve            include a 10-min serve block
+ * @param {number|boolean} o.game      game minutes: 0, 15 or 20 (true = 20)
  * @param {number} [o.players]         group size: 4, 6 or 8
  * @param {object[]} o.drills          drill library (see drills.js)
  * @param {string[]} [o.recentDrillIds] drills used in recent saved sessions
@@ -108,19 +98,18 @@ export function buildSession({ levels, serve, game, players = 6, drills, recentD
   const recent = new Set(recentDrillIds);
   const used = new Set();
 
+  const gameMinutes = game === true ? 20 : game || 0;
   const techMinutes =
-    SESSION_MINUTES - FIXED.warmup - FIXED.cooldown - FIXED.break * FIXED.breaks -
-    (serve ? FIXED.serve : 0) - (game ? FIXED.game : 0);
+    SESSION_MINUTES - FIXED.warmup - FIXED.break * FIXED.breaks - (serve ? FIXED.serve : 0) - gameMinutes;
   const units = techMinutes / UNIT;
-  const slots = technicalSlots(lo, hi, units);
+  const slots = technicalSlots();
   const alloc = allocate(slots, units);
 
   const blocks = [
     { label: "Warm-up", categories: ["warmup"], type: null, minutes: FIXED.warmup },
     ...slots.map((s, i) => ({ ...s, minutes: alloc[i] * UNIT })),
     ...(serve ? [{ label: "Serve", categories: ["serve"], type: null, minutes: FIXED.serve }] : []),
-    ...(game ? [{ label: "Game time", categories: ["game"], type: null, minutes: FIXED.game }] : []),
-    { label: "Cool-down", categories: ["cooldown"], type: null, minutes: FIXED.cooldown },
+    ...(gameMinutes ? [{ label: "Games", categories: ["game"], type: null, minutes: gameMinutes }] : []),
   ];
 
   const items = [];
@@ -131,11 +120,11 @@ export function buildSession({ levels, serve, game, players = 6, drills, recentD
   }
 
   // Water breaks: insert before the block whose start is closest to 40' and 80'
-  // (never before the warm-up or the cool-down).
+  // (never before the warm-up).
   for (const target of [40, 80]) {
     let t = 0, best = 1, bestDiff = Infinity;
     items.forEach((it, i) => {
-      if (i > 0 && i < items.length - 1 && Math.abs(t - target) < bestDiff) {
+      if (i > 0 && Math.abs(t - target) < bestDiff) {
         bestDiff = Math.abs(t - target);
         best = i;
       }
@@ -173,7 +162,7 @@ const fmt = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 export function planToText(plan, { levels, serve, game, players = 6 }) {
   const head = [
     `🎾 Training plan — ${levels.map((l) => LEVELS[l]).join(" + ")}`,
-    `${players} players · ${SESSION_MINUTES} min · Serve ${serve ? "✓" : "✗"} · Game ${game ? "✓" : "✗"}`,
+    `${players} players · ${SESSION_MINUTES} min · Serve ${serve ? "10'" : "off"} · Games ${game ? `${game === true ? 20 : game}'` : "off"}`,
     "",
   ];
   const lines = plan.map((it) => {

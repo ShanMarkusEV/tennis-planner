@@ -18,14 +18,27 @@ Live: https://shanmarkusev.github.io/tennis-planner/
 - **History tab:** the last 10 saved sessions.
 
 ## How plans are built
-- Drills must be doable by the **weakest** selected level; drills that also stretch
-  the strongest level are preferred. Every drill carries a note for each level in its range.
-  A selected level outside that range gets the nearest level's note with a "step it up" or "make it easier" cue.
-- Fixed blocks: warm-up 10', two 5' water breaks, cool-down 5',
-  serve 10' (optional, capped), game 20' (optional). The rest is split across forehand (static → moving),
-  backhand (static → moving), net/movement and, if there's time, a live rally block.
-  Lower groups get more static time; higher groups more moving/live time.
-- Total is always exactly 120 min. Drills from the last 3 saved sessions are picked far less.
+Every plan follows the coach's playbook:
+
+| # | Block | Minutes |
+|---|---|---|
+| 1 | Warm-up | 10 |
+| 2 | Fed ball: forehand + backhand (technique correction) | the largest share |
+| 3 | Racket feed across the net (moving FH/BH) | rest of technical time |
+| 4 | Volley | 〃 |
+| 5 | Mixed technique (FH, BH, short balls, volley, smash), from the `combo` drills | 〃 |
+| 6 | Serve (optional) | 10 max |
+| 7 | Games (Off / 15 / 20) | 15–20 |
+
+There are two 5-minute water breaks, placed near the 40' and 80' marks. The total is always 120 minutes.
+
+How drills are chosen:
+- A drill must be doable by the **weakest** selected level. Drills that also stretch the strongest level are preferred.
+- Every drill has a note for each level in its range. A selected level outside that range gets the nearest level's note with a "step it up" or "make it easier" cue.
+- Drills rated unsuitable for the group size are skipped, and drills rated ideal for it are preferred.
+- Drills used in the last 3 saved sessions are picked much less often.
+
+To change the playbook, edit `technicalSlots()` and `FIXED` in `planner.js`.
 
 ## Files
 | File | |
@@ -77,7 +90,7 @@ those sites are copyrighted, so the app draws its own diagrams. Use `image_url` 
 ## Develop
 ```sh
 npm install
-npm test                       # 1,200 generated plans sanity-checked
+npm test                       # 2,700 generated plans sanity-checked
 python3 -m http.server 8000    # http://localhost:8000
 ```
 `.env` (gitignored) needs `SUPABASE_DB_URL` = Supabase **Session pooler** URI.
