@@ -187,7 +187,7 @@
       <div class="bar" id="bar" aria-hidden="true"></div>
       <ol class="timeline" id="timeline"></ol>
       <div class="btn-row">
-        <button class="btn secondary" id="shuffle">↻ Shuffle</button>
+        <button class="btn secondary" id="shuffle">↻ New plan</button>
         <button class="btn secondary" id="copy">Copy as text</button>
         <button class="btn" id="save">Save session</button>
       </div>
@@ -290,13 +290,13 @@ function levelNotes(d, levels, single) {
   return `<ul class="mixed">${rows.map(([l, n]) => `<li><b>${LEVELS[l]}:</b> ${esc(n)}</li>`).join("")}</ul>`;
 }
 
-// Swap just this block: ↻ picks another fitting drill, the list lets the coach choose.
+// Shuffle just this block: ↻ picks another fitting drill, the list lets the coach choose.
 function swapControls(plan, i, opts) {
   const alts = alternativesFor(plan, i, opts);
   if (!alts.length) return "";
   const lv = (d) => d.minLevel === d.maxLevel ? LEVELS[d.minLevel] : `${LEVELS[d.minLevel]}–${LEVELS[d.maxLevel]}`;
   return `<div class="swap-row">
-    <button class="btn secondary small" data-swap="${i}" aria-label="Swap this drill">↻ Swap</button>
+    <button class="btn secondary small" data-swap="${i}" aria-label="Shuffle this drill">↻ Shuffle</button>
     <select class="choose" data-choose="${i}" aria-label="Choose a different drill">
       <option value="">Choose… (${alts.length} options)</option>
       ${alts.map((d) => `<option value="${esc(d.id)}">${esc(d.name)} · ${lv(d)}</option>`).join("")}
