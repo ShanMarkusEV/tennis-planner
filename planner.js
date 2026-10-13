@@ -53,6 +53,12 @@ function allocate(slots, units) {
   return base;
 }
 
+// Players hitting with each other (pair rallies, self-feed in pairs) with no coach
+// on court. Sessions are coach-fed, so these are only used in the Games block.
+export const playerOnly = (d) =>
+  !(d.diagram?.people || []).some((p) => /^C/i.test(p.label)) && (d.type === "live" || /^pairs/i.test(d.players || ""));
+const allowed = (d, slot) => slot.categories.includes("game") || !playerOnly(d);
+
 // How well a drill works for this many players: 0 no, 1 with adaptation, 2 ideal.
 // Drills without group notes count as workable.
 export const groupFit = (d, players) => d.groupNotes?.[players]?.fit ?? 1;
@@ -67,12 +73,13 @@ function weight(d, lo, hi, recent, players) {
 
 // Drills that can fill `slot`, loosening the rules step by step if nothing fits.
 function candidates(drills, slot, lo, used, players) {
-  const ok = (d) => !used.has(d.id) && d.minLevel <= lo && slot.categories.includes(d.category);
+  const base = (d) => !used.has(d.id) && slot.categories.includes(d.category) && allowed(d, slot);
+  const ok = (d) => base(d) && d.minLevel <= lo;
   const fits = (d) => ok(d) && groupFit(d, players) > 0;
   let pool = drills.filter((d) => fits(d) && (!slot.type || d.type === slot.type));
   if (!pool.length) pool = drills.filter(fits); // relax the static/moving split
   if (!pool.length) pool = drills.filter(ok); // relax the group-size fit
-  if (!pool.length) pool = drills.filter((d) => !used.has(d.id) && slot.categories.includes(d.category));
+  if (!pool.length) pool = drills.filter(base);
   return pool;
 }
 

@@ -211,7 +211,7 @@
 
 <script type="module">
 import { DRILLS } from "./drills.js";
-import { LEVELS, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, buildSession, planToText, noteFor, groupFit, alternativesFor, swapDrill } from "./planner.js";
+import { LEVELS, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, buildSession, planToText, noteFor, groupFit, alternativesFor, swapDrill, playerOnly } from "./planner.js";
 import { loadDrills, loadHistory, saveSession, recentDrillIds } from "./db.js";
 import { courtSVG, DIAGRAM_LEGEND } from "./diagram.js";
 
@@ -415,7 +415,7 @@ function renderLibrary() {
       <div class="block">${esc(cat(d))} · ${esc(d.type)}</div>
       <details class="drill"><summary>
         <div class="name">${esc(d.name)}</div>
-        <div class="lvl">${lv(d)}${groupFit(d, players) === 0 ? `<span class="unfit">Not for ${players} players</span>` : ""}</div>
+        <div class="lvl">${lv(d)}${groupFit(d, players) === 0 ? `<span class="unfit">Not for ${players} players</span>` : ""}${playerOnly(d) && d.category !== "game" ? `<span class="unfit">No coach · not used in plans</span>` : ""}</div>
         <p class="cues">${esc(d.summary)}</p>
         <span class="more">How to run it</span>
       </summary>${drillBody(d, { players, levels: (levels.length ? levels : [0, 1, 2, 3]).filter((l) => d.levelNotes[l]) })}</details></div>`).join("")

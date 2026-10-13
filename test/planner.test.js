@@ -1,6 +1,6 @@
 // Sanity checks for buildSession across every level combo × toggle × seed.
 import assert from "node:assert/strict";
-import { buildSession, totalMinutes, planToText, noteFor, groupFit, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, alternativesFor, swapDrill } from "../planner.js";
+import { buildSession, totalMinutes, planToText, noteFor, groupFit, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, alternativesFor, swapDrill, playerOnly } from "../planner.js";
 import { DRILLS } from "../drills.js";
 
 const combos = [];
@@ -37,6 +37,7 @@ for (const levels of combos)
         for (const p of drills) {
           if (p.drill.category === "serve") assert.ok(p.minutes <= 10, `serve over 10 min ${ctx}`);
           assert.ok(groupFit(p.drill, players) > 0, `${p.drill.id} unsuitable for ${players} players ${ctx}`);
+          if (p.label !== "Games") assert.ok(!playerOnly(p.drill), `${p.drill.id} has no coach ${ctx}`);
         }
         assert.equal(plan[0].label, "Warm-up", ctx);
         plan.forEach((p, i) => {
@@ -75,6 +76,7 @@ for (const levels of combos)
           assert.notEqual(next[i].drill.id, it.drill.id, `swap did nothing ${ctx}`);
           assert.ok(it.categories.includes(next[i].drill.category), `wrong block type ${ctx}`);
           assert.ok(next[i].drill.minLevel <= Math.min(...levels), `too hard ${ctx}`);
+          if (it.label !== "Games") assert.ok(alts.every((d) => !playerOnly(d)), `player-only alternative ${ctx}`);
           swaps++;
         }
         const ids = next.filter((x) => x.drill).map((x) => x.drill.id);

@@ -15,7 +15,8 @@ Live: https://shanmarkusev.github.io/tennis-planner/
   - how to run it **for each selected level**
   - source links
 - **Shuffle a single block:** each drill has **↻ Shuffle**, which picks another drill that fits the same block, levels and group size, and inside the opened card **Pick a different drill…** lets you choose one yourself. The rest of the plan and its timing stay the same, and no drill is repeated.
-- **Drills tab:** browse the whole library (75 drills), filtered by the selected levels and by category.
+- **Coach-fed only:** sessions are coach-fed, so drills where players just hit with each other (pair rallies, self-feeding in pairs, no coach in the diagram) are only used in the **Games** block. The Drills tab marks them "No coach · not used in plans".
+- **Drills tab:** browse the whole library (82 drills), filtered by the selected levels and by category.
 - **History tab:** the last 10 saved sessions.
 
 ## How plans are built
