@@ -1,0 +1,12 @@
+{
+  "name": "tennis-planner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/planner.test.js",
+    "deploy-sql": "node scripts/deploy-sql.mjs"
+  },
+  "devDependencies": {
+    "pg": "^8.13.1"
+  }
+}

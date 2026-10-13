@@ -1,0 +1,145 @@
+// Built-in drill library. Used as the offline fallback and as the seed for the
+// Supabase `planner_drills` table (scripts/deploy-sql.mjs). Once seeded, edit
+// drills in the Supabase Table Editor — the app prefers the database copy.
+//
+// Levels: 0 Newbie · 1 Beginner · 2 Upper Beginner · 3 Intermediate
+// A drill is usable when the weakest player in the group is >= minLevel.
+// category: warmup | forehand | backhand | net | movement | rally | serve | game | cooldown
+// type:     static (fed, feet set) | moving (fed, on the move) | live (rally / play)
+
+export const DRILLS = [
+  // ── Warm-up ──────────────────────────────────────────────
+  { id: "w-mini", name: "Mini-tennis in the service boxes", category: "warmup", type: "live", minLevel: 0, maxLevel: 3, intensity: 1,
+    cues: "Short compact swings, soft hands, count rallies out loud.",
+    mixedNote: "Pair a stronger player with a newer one; stronger player feeds easy balls." },
+  { id: "w-dynamic", name: "Dynamic warm-up + split-step ladder", category: "warmup", type: "moving", minLevel: 0, maxLevel: 3, intensity: 1,
+    cues: "Jog, side shuffles, carioca, arm circles; finish with split-step on coach's clap.",
+    mixedNote: "" },
+  { id: "w-baseline", name: "Cooperative baseline rally warm-up", category: "warmup", type: "live", minLevel: 1, maxLevel: 3, intensity: 2,
+    cues: "Start in the service line, step back to baseline every 5 balls.",
+    mixedNote: "Newer players can stay at the service line while stronger players go to the baseline." },
+  { id: "w-volley", name: "Volley-to-volley warm-up", category: "warmup", type: "live", minLevel: 2, maxLevel: 3, intensity: 1,
+    cues: "Racket up, short punch, no swing.",
+    mixedNote: "" },
+
+  // ── Forehand ────────────────────────────────────────────
+  { id: "fh-shadow", name: "Shadow swing + drop-feed forehand", category: "forehand", type: "static", minLevel: 0, maxLevel: 1, intensity: 1,
+    cues: "Unit turn, contact in front, finish over the shoulder. 5 shadows, then 5 drop-fed balls.",
+    mixedNote: "Beginners: coach tosses instead of drop-feeding." },
+  { id: "fh-basket", name: "Static forehand basket feed (cross-court target)", category: "forehand", type: "static", minLevel: 0, maxLevel: 3, intensity: 2,
+    cues: "Feet set, turn shoulders, swing low-to-high to a cross-court cone.",
+    mixedNote: "Newbies: big target, slow feed. Intermediates: smaller target, faster feed, aim deep." },
+  { id: "fh-height", name: "Forehand height-over-net (topspin window)", category: "forehand", type: "static", minLevel: 1, maxLevel: 3, intensity: 2,
+    cues: "Aim 1–2 m over the net; brush up the back of the ball.",
+    mixedNote: "Upper Beginners+: must land past the service line." },
+  { id: "fh-step", name: "Forehand step-to-the-ball feed", category: "forehand", type: "moving", minLevel: 0, maxLevel: 1, intensity: 2,
+    cues: "Feed 1–2 steps away; step, set, swing, recover to the cone.",
+    mixedNote: "Beginners: feed a little wider so they take 3 steps." },
+  { id: "fh-side", name: "Side-to-side moving forehand", category: "forehand", type: "moving", minLevel: 1, maxLevel: 3, intensity: 3,
+    cues: "Two wide feeds, shuffle back to center between each ball.",
+    mixedNote: "Intermediates: add a third ball and hit down the line on the last one." },
+  { id: "fh-shortball", name: "Forehand short ball move-in", category: "forehand", type: "moving", minLevel: 1, maxLevel: 3, intensity: 3,
+    cues: "Deep feed then short feed; move in, hit through, keep balance.",
+    mixedNote: "Upper Beginners+: follow the short ball to the net." },
+  { id: "fh-insideout", name: "Run-around inside-out forehand", category: "forehand", type: "moving", minLevel: 2, maxLevel: 3, intensity: 3,
+    cues: "Feed to backhand corner; run around, open stance, hit inside-out.",
+    mixedNote: "" },
+
+  // ── Backhand ────────────────────────────────────────────
+  { id: "bh-drop", name: "Drop-feed backhand contact point", category: "backhand", type: "static", minLevel: 0, maxLevel: 1, intensity: 1,
+    cues: "Shoulder turn first, contact beside the front hip, finish high.",
+    mixedNote: "Beginners: coach tosses from the side." },
+  { id: "bh-basket", name: "Static backhand basket feed", category: "backhand", type: "static", minLevel: 0, maxLevel: 3, intensity: 2,
+    cues: "Feet set, two-hand (or one-hand) turn, swing low-to-high cross-court.",
+    mixedNote: "Newbies: slow feed to the hip. Intermediates: deeper, faster feed, aim at the corner." },
+  { id: "bh-target", name: "Backhand cross-court target ladder", category: "backhand", type: "static", minLevel: 1, maxLevel: 3, intensity: 2,
+    cues: "Hit 3 in a row into the cross-court target to move to the next level.",
+    mixedNote: "Intermediates: target shrinks after every success." },
+  { id: "bh-step", name: "Backhand step-to-the-ball feed", category: "backhand", type: "moving", minLevel: 0, maxLevel: 1, intensity: 2,
+    cues: "Small adjustment steps, set the back foot, swing, recover.",
+    mixedNote: "" },
+  { id: "bh-side", name: "Side-to-side moving backhand", category: "backhand", type: "moving", minLevel: 1, maxLevel: 3, intensity: 3,
+    cues: "Wide feed to the backhand, recover with a crossover step.",
+    mixedNote: "Intermediates: alternate topspin and slice." },
+  { id: "bh-slice", name: "Backhand slice approach", category: "backhand", type: "moving", minLevel: 2, maxLevel: 3, intensity: 3,
+    cues: "Short feed, slice down the line, follow to the net.",
+    mixedNote: "" },
+  { id: "fhbh-alt", name: "Forehand–backhand alternating feed", category: "backhand", type: "moving", minLevel: 0, maxLevel: 3, intensity: 2,
+    cues: "Alternate sides every ball, recover to center each time.",
+    mixedNote: "Newbies: slow feed with a pause. Intermediates: continuous feed, deep targets." },
+
+  // ── Net ─────────────────────────────────────────────────
+  { id: "net-catch", name: "Volley catch-and-block", category: "net", type: "static", minLevel: 0, maxLevel: 1, intensity: 1,
+    cues: "Catch the ball with the non-racket hand first, then block with the racket. No swing.",
+    mixedNote: "" },
+  { id: "net-feed", name: "Forehand & backhand volley feed", category: "net", type: "static", minLevel: 1, maxLevel: 3, intensity: 2,
+    cues: "Racket up, step forward, short punch to the target.",
+    mixedNote: "Intermediates: feed lower and faster, aim at the alleys." },
+  { id: "net-overhead", name: "Overhead smash basics", category: "net", type: "static", minLevel: 1, maxLevel: 3, intensity: 2,
+    cues: "Turn sideways, point at the ball, hit at full reach.",
+    mixedNote: "Beginners: catch the lob first, then hit." },
+  { id: "net-approach", name: "Approach + volley + overhead", category: "net", type: "moving", minLevel: 2, maxLevel: 3, intensity: 3,
+    cues: "Short ball approach, split-step, volley, then overhead on the lob.",
+    mixedNote: "" },
+
+  // ── Movement (used in the net slot for newbie-only groups) ──
+  { id: "mv-cones", name: "Cone footwork + shadow swing", category: "movement", type: "moving", minLevel: 0, maxLevel: 2, intensity: 2,
+    cues: "Shuffle to a cone, shadow swing, recover to center.",
+    mixedNote: "Stronger players: add a fed ball at each cone." },
+  { id: "mv-split", name: "Split-step reaction feed", category: "movement", type: "moving", minLevel: 0, maxLevel: 3, intensity: 2,
+    cues: "Split-step as the coach feeds; react left or right and hit.",
+    mixedNote: "Intermediates: coach disguises the feed direction." },
+  { id: "mv-recovery", name: "Recovery drill — touch the center", category: "movement", type: "moving", minLevel: 1, maxLevel: 3, intensity: 3,
+    cues: "Hit, then touch the center cone before the next feed.",
+    mixedNote: "" },
+
+  // ── Rally / combination ─────────────────────────────────
+  { id: "r-coop", name: "Cooperative rally count", category: "rally", type: "live", minLevel: 0, maxLevel: 2, intensity: 2,
+    cues: "Pairs rally in the service boxes; beat your record.",
+    mixedNote: "Mixed pairs: stronger player must keep the ball in the newer player's strike zone." },
+  { id: "r-crosscourt", name: "Cross-court rally consistency (10-ball goal)", category: "rally", type: "live", minLevel: 1, maxLevel: 3, intensity: 3,
+    cues: "Cross-court only, reach 10 in a row before switching sides.",
+    mixedNote: "Intermediates: ball must land past the service line." },
+  { id: "r-pattern", name: "Cross-court / down-the-line pattern", category: "rally", type: "live", minLevel: 2, maxLevel: 3, intensity: 3,
+    cues: "One player hits cross-court only, the other down the line only.",
+    mixedNote: "" },
+  { id: "r-2on1", name: "2-on-1 live ball", category: "rally", type: "live", minLevel: 2, maxLevel: 3, intensity: 3,
+    cues: "Two players at the net vs. one at the baseline; rotate every 2 minutes.",
+    mixedNote: "" },
+
+  // ── Serve ───────────────────────────────────────────────
+  { id: "s-abbrev", name: "Abbreviated serve (start from trophy position)", category: "serve", type: "static", minLevel: 0, maxLevel: 1, intensity: 1,
+    cues: "Start with racket behind the head, toss, swing up and out.",
+    mixedNote: "Beginners: add the full motion after 5 good serves." },
+  { id: "s-toss", name: "Toss + trophy position serve", category: "serve", type: "static", minLevel: 0, maxLevel: 2, intensity: 1,
+    cues: "Consistent toss slightly in front; pause in trophy, then swing.",
+    mixedNote: "Stronger players: aim at a target box." },
+  { id: "s-targets", name: "Serve targets (T, body, wide)", category: "serve", type: "static", minLevel: 1, maxLevel: 3, intensity: 2,
+    cues: "3 serves to each target, score points per hit.",
+    mixedNote: "Beginners: any ball in the box counts." },
+  { id: "s-return", name: "Serve + return of serve", category: "serve", type: "live", minLevel: 2, maxLevel: 3, intensity: 3,
+    cues: "Server picks a target; returner split-steps and blocks deep.",
+    mixedNote: "" },
+
+  // ── Game time ───────────────────────────────────────────
+  { id: "g-minigames", name: "Mini-tennis games (service boxes)", category: "game", type: "live", minLevel: 0, maxLevel: 1, intensity: 2,
+    cues: "Underhand start, play to 7 points, rotate partners.",
+    mixedNote: "" },
+  { id: "g-feedin", name: "Coach-fed point play", category: "game", type: "live", minLevel: 0, maxLevel: 2, intensity: 2,
+    cues: "Coach feeds to start every point; play it out.",
+    mixedNote: "Coach feeds easier balls to newer players." },
+  { id: "g-king", name: "King of the Court", category: "game", type: "live", minLevel: 1, maxLevel: 3, intensity: 3,
+    cues: "Winners stay on the king side; challengers rotate in.",
+    mixedNote: "Newer players start each point with a fed ball." },
+  { id: "g-tiebreak", name: "Doubles tiebreak games", category: "game", type: "live", minLevel: 2, maxLevel: 3, intensity: 3,
+    cues: "First to 7, win by 2; mix partners each round.",
+    mixedNote: "Pair stronger with newer players to balance teams." },
+
+  // ── Cool-down ───────────────────────────────────────────
+  { id: "c-stretch", name: "Cool-down stretch + recap", category: "cooldown", type: "static", minLevel: 0, maxLevel: 3, intensity: 1,
+    cues: "Static stretches; each player names one thing they improved today.",
+    mixedNote: "" },
+  { id: "c-easyrally", name: "Easy rally + stretch", category: "cooldown", type: "live", minLevel: 1, maxLevel: 3, intensity: 1,
+    cues: "2 minutes of slow mini-tennis, then stretch.",
+    mixedNote: "" },
+];

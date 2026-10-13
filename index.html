@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tennis Training Planner</title>
+<meta name="description" content="Build a 2-hour tennis training session for mixed member levels.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎾</text></svg>">
+<style>
+  :root {
+    --bg: #f6f7f2; --surface: #ffffff; --surface-2: #eef0e7; --text: #1b1f17; --muted: #5d6555;
+    --border: #d9ddcf; --accent: #3f7d20; --accent-ink: #ffffff; --accent-soft: #e2efd9;
+    --warn-bg: #fff4d6; --warn-ink: #6b4e00; --break: #2b6cb0; --break-soft: #e3eefa;
+    --radius: 14px; --shadow: 0 1px 2px rgb(0 0 0 / .06), 0 4px 16px rgb(0 0 0 / .04);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11140f; --surface: #1a1e17; --surface-2: #232820; --text: #e8ecdf; --muted: #9ca592;
+      --border: #30362b; --accent: #8fd16a; --accent-ink: #11140f; --accent-soft: #263a1c;
+      --warn-bg: #3a2f10; --warn-ink: #f3d68a; --break: #7fb2ec; --break-soft: #18263a;
+      --shadow: none; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11140f; --surface: #1a1e17; --surface-2: #232820; --text: #e8ecdf; --muted: #9ca592;
+    --border: #30362b; --accent: #8fd16a; --accent-ink: #11140f; --accent-soft: #263a1c;
+    --warn-bg: #3a2f10; --warn-ink: #f3d68a; --break: #7fb2ec; --break-soft: #18263a;
+    --shadow: none; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 48px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 8px 0 16px; }
+  h1 { font-size: 1.35rem; margin: 0; letter-spacing: -.01em; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 3px; border-radius: 999px; }
+  .tabs button { border: 0; background: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; font: inherit; font-size: .9rem; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
+    padding: 9px 14px; border-radius: 999px; font: inherit; font-size: .95rem; cursor: pointer; min-height: 44px;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .toggles { display: grid; gap: 4px; margin-top: 16px; }
+  .toggle { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; cursor: pointer; min-height: 44px; }
+  .toggle input { appearance: none; width: 46px; height: 28px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; transition: background .15s; margin: 0; flex: none; }
+  .toggle input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgb(0 0 0 / .25); }
+  .toggle input:checked { background: var(--accent); }
+  .toggle input:checked::after { transform: translateX(18px); }
+  .toggle small { display: block; color: var(--muted); font-size: .8rem; }
+  .btn {
+    border: 0; border-radius: 12px; padding: 12px 16px; font: inherit; font-weight: 600; cursor: pointer; min-height: 46px;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.secondary { background: var(--surface-2); color: var(--text); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-row .btn { flex: 1 1 auto; }
+  .banner { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 12px; font-size: .9rem; margin-bottom: 14px; }
+  .summary { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .summary strong { font-size: 1.05rem; }
+  .summary span { color: var(--muted); font-size: .85rem; }
+  ol.timeline { list-style: none; padding: 0; margin: 0 0 14px; }
+  .item { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border); }
+  .item:first-child { border-top: 0; padding-top: 0; }
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: .9rem; padding-top: 2px; }
+  .block { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
+  .name { font-weight: 600; margin: 1px 0 4px; }
+  .mins { color: var(--muted); font-weight: 500; font-size: .9rem; white-space: nowrap; }
+  .cues { color: var(--muted); font-size: .9rem; margin: 0; }
+  .mixed { margin: 6px 0 0; font-size: .85rem; background: var(--accent-soft); border-radius: 8px; padding: 6px 9px; }
+  .item.break .block { color: var(--break); }
+  .item.break .name { color: var(--break); }
+  .bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin: 0 0 14px; background: var(--surface-2); }
+  .bar i { display: block; height: 100%; border-right: 2px solid var(--surface); }
+  .empty { color: var(--muted); text-align: center; padding: 24px 8px; }
+  details.hist { border-top: 1px solid var(--border); padding: 10px 0; }
+  details.hist:first-of-type { border-top: 0; }
+  details.hist summary { cursor: pointer; display: flex; justify-content: space-between; gap: 8px; list-style: none; }
+  details.hist summary::-webkit-details-marker { display: none; }
+  details.hist summary span { color: var(--muted); font-size: .85rem; }
+  details.hist ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: .9rem; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .9rem; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  [hidden] { display: none !important; }
+  @media print {
+    header .tabs, #settings, .btn-row, .banner { display: none !important; }
+    .card { box-shadow: none; border: 0; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🎾 Training Planner</h1>
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="plan">Plan</button>
+      <button role="tab" aria-selected="false" data-tab="history">History</button>
+    </nav>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <section id="tab-plan">
+    <div class="card" id="settings">
+      <h2>Who's on court</h2>
+      <div class="chips" id="levels"></div>
+      <div class="toggles">
+        <label class="toggle"><span>Include Serve<small>15 min serve block</small></span><input type="checkbox" id="serve"></label>
+        <label class="toggle"><span>Include Game time<small>20 min of match play</small></span><input type="checkbox" id="game"></label>
+      </div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn" id="generate">Generate 2-hour plan</button>
+      </div>
+    </div>
+
+    <div class="card" id="result" hidden>
+      <div class="summary"><strong id="sum-title"></strong><span id="sum-meta"></span></div>
+      <div class="bar" id="bar" aria-hidden="true"></div>
+      <ol class="timeline" id="timeline"></ol>
+      <div class="btn-row">
+        <button class="btn secondary" id="shuffle">↻ Shuffle</button>
+        <button class="btn secondary" id="copy">Copy as text</button>
+        <button class="btn" id="save">Save session</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-history" hidden>
+    <div class="card"><h2>Last 10 saved sessions</h2><div id="history"></div></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module">
+import { DRILLS } from "./drills.js";
+import { LEVELS, SESSION_MINUTES, buildSession, planToText } from "./planner.js";
+import { loadDrills, loadHistory, saveSession, recentDrillIds } from "./db.js";
+
+const $ = (id) => document.getElementById(id);
+const PREFS_KEY = "tennis-planner:prefs";
+const CAT_COLORS = { warmup: "#e0a800", forehand: "#3f7d20", backhand: "#6b9e3a", net: "#7a5cc2", movement: "#7a5cc2",
+  rally: "#c2410c", serve: "#0e7490", game: "#be185d", cooldown: "#64748b", break: "var(--break)" };
+
+const state = { drills: DRILLS, online: false, history: [], plan: null, opts: null, saved: false };
+
+// ── prefs (per-device convenience only) ──
+function readPrefs() {
+  try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || null; } catch { return null; }
+}
+function writePrefs(p) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch {}
+}
+
+// ── settings UI ──
+const prefs = readPrefs() || { levels: [1], serve: true, game: true };
+LEVELS.forEach((name, i) => {
+  const b = document.createElement("button");
+  b.className = "chip";
+  b.textContent = name;
+  b.dataset.level = i;
+  b.setAttribute("aria-pressed", prefs.levels.includes(i));
+  b.onclick = () => {
+    b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true");
+    syncGenerate();
+  };
+  $("levels").append(b);
+});
+$("serve").checked = prefs.serve;
+$("game").checked = prefs.game;
+
+function currentOpts() {
+  const levels = [...document.querySelectorAll(".chip[aria-pressed=true]")].map((b) => +b.dataset.level);
+  return { levels, serve: $("serve").checked, game: $("game").checked };
+}
+function syncGenerate() {
+  const none = !currentOpts().levels.length;
+  $("generate").disabled = none;
+  $("generate").textContent = none ? "Pick at least one level" : "Generate 2-hour plan";
+}
+
+// ── render ──
+const fmt = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function render() {
+  const { plan, opts } = state;
+  const mixed = Math.max(...opts.levels) > Math.min(...opts.levels);
+  $("sum-title").textContent = opts.levels.map((l) => LEVELS[l]).join(" + ");
+  $("sum-meta").textContent = `${SESSION_MINUTES} min · Serve ${opts.serve ? "on" : "off"} · Game ${opts.game ? "on" : "off"}`;
+  $("bar").innerHTML = plan.map((it) => {
+    const c = CAT_COLORS[it.kind === "break" ? "break" : it.drill?.category] || "var(--muted)";
+    return `<i style="width:${(it.minutes / SESSION_MINUTES) * 100}%;background:${c}" title="${esc(it.label)}"></i>`;
+  }).join("");
+  $("timeline").innerHTML = plan.map((it) => {
+    if (it.kind === "break")
+      return `<li class="item break"><div class="time">${fmt(it.start)}</div><div><div class="block">Break</div><div class="name">💧 Water break <span class="mins">· ${it.minutes}'</span></div></div></li>`;
+    const d = it.drill || {};
+    return `<li class="item"><div class="time">${fmt(it.start)}</div><div>
+      <div class="block">${esc(it.label)}</div>
+      <div class="name">${esc(d.name || "—")} <span class="mins">· ${it.minutes}'</span></div>
+      <p class="cues">${esc(d.cues)}</p>
+      ${mixed && d.mixedNote ? `<p class="mixed"><b>Mixed group:</b> ${esc(d.mixedNote)}</p>` : ""}
+    </div></li>`;
+  }).join("");
+  $("save").disabled = !state.online || state.saved;
+  $("save").textContent = state.saved ? "Saved ✓" : state.online ? "Save session" : "Save (offline)";
+  $("result").hidden = false;
+}
+
+function generate() {
+  const opts = currentOpts();
+  if (!opts.levels.length) return;
+  writePrefs(opts);
+  state.opts = opts;
+  state.plan = buildSession({
+    ...opts,
+    drills: state.drills,
+    recentDrillIds: recentDrillIds(state.history),
+    seed: (Math.random() * 2 ** 32) >>> 0,
+  });
+  state.saved = false;
+  render();
+}
+
+function renderHistory() {
+  const byId = new Map(state.drills.map((d) => [d.id, d]));
+  if (!state.online) { $("history").innerHTML = `<p class="empty">History is unavailable while offline.</p>`; return; }
+  if (!state.history.length) { $("history").innerHTML = `<p class="empty">No saved sessions yet.</p>`; return; }
+  $("history").innerHTML = state.history.map((s) => {
+    const when = new Date(s.created_at).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const rows = s.plan.map((it) => it.kind === "break" ? `<li>${fmt(it.start)} Water break</li>`
+      : `<li>${fmt(it.start)} ${esc(it.label)}: ${esc(byId.get(it.drillId)?.name || it.drillId)} (${it.minutes}')</li>`).join("");
+    return `<details class="hist"><summary><b>${esc(s.levels.map((l) => LEVELS[l]).join(" + "))}</b><span>${when}</span></summary>
+      <ul>${rows}</ul></details>`;
+  }).join("");
+}
+
+function toast(msg) {
+  $("toast").textContent = msg;
+  $("toast").classList.add("show");
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => $("toast").classList.remove("show"), 1800);
+}
+
+// ── events ──
+$("generate").onclick = generate;
+$("shuffle").onclick = generate;
+$("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText(planToText(state.plan, state.opts)); toast("Copied"); }
+  catch { toast("Copy failed"); }
+};
+$("save").onclick = async () => {
+  $("save").disabled = true;
+  try {
+    await saveSession({ ...state.opts, plan: state.plan });
+    state.saved = true;
+    state.history = await loadHistory();
+    renderHistory();
+    toast("Session saved");
+  } catch (e) {
+    console.error(e);
+    toast("Save failed");
+  }
+  render();
+};
+document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
+  $("tab-plan").hidden = b.dataset.tab !== "plan";
+  $("tab-history").hidden = b.dataset.tab !== "history";
+}));
+
+// ── boot: try Supabase, fall back to built-in drills ──
+syncGenerate();
+renderHistory();
+try {
+  const [drills, history] = await Promise.all([loadDrills(), loadHistory()]);
+  Object.assign(state, { drills, history, online: true });
+} catch (e) {
+  console.warn("Offline mode:", e);
+  $("banner").textContent = "Offline — using built-in drills. Saving and history are disabled.";
+  $("banner").hidden = false;
+}
+renderHistory();
+if (state.plan) render();
+</script>
+</body>
+</html>
