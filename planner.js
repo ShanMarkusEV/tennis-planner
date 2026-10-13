@@ -188,8 +188,8 @@ export function noteFor(d, l) {
   const near = Math.min(Math.max(l, d.minLevel), d.maxLevel);
   if (!notes[near]) return "";
   return l > near
-    ? `Run the ${LEVELS[near]} version and step it up: faster feeds, smaller targets, more movement. (${notes[near]})`
-    : `Run the ${LEVELS[near]} version and make it easier: closer, slower, softer balls. (${notes[near]})`;
+    ? `${notes[near]} ↑ Harder: faster feeds, smaller targets.`
+    : `${notes[near]} ↓ Easier: closer, slower, softer balls.`;
 }
 
 export function totalMinutes(plan) {

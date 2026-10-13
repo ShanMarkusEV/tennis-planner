@@ -54,12 +54,10 @@
   .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
   .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; padding: 10px 0; border-radius: 9px; cursor: pointer; min-height: 44px; }
   .seg button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
-  .group { margin: 6px 0 0; font-size: .85rem; border-left: 3px solid var(--break); padding: 2px 0 2px 9px; }
-  .group b { color: var(--break); }
   .unfit { font-size: .75rem; font-weight: 600; color: var(--warn-ink); background: var(--warn-bg); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
-  .swap-row { display: flex; gap: 8px; margin-top: 10px; }
-  .btn.small { min-height: 38px; padding: 6px 12px; font-size: .88rem; flex: none; }
-  .choose { flex: 1; min-width: 0; width: 100%; text-overflow: ellipsis; min-height: 38px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: .88rem; padding: 0 10px; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .shuffle { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; font: inherit; font-size: .8rem; font-weight: 600; padding: 4px 10px; min-height: 32px; cursor: pointer; flex: none; }
+  .choose { display: block; margin-top: 14px; min-width: 0; width: 100%; text-overflow: ellipsis; min-height: 38px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: .88rem; padding: 0 10px; }
   .item.swapped { animation: flash 1.2s ease-out; }
   @keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
   .toggles { display: grid; gap: 4px; margin-top: 16px; }
@@ -88,9 +86,13 @@
   .block { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
   .name { font-weight: 600; margin: 1px 0 4px; }
   .mins { color: var(--muted); font-weight: 500; font-size: .9rem; white-space: nowrap; }
-  .cues { color: var(--muted); font-size: .9rem; margin: 0; }
-  .mixed { margin: 6px 0 0; font-size: .85rem; background: var(--accent-soft); border-radius: 8px; padding: 6px 9px; list-style: none; }
-  ul.mixed li + li { margin-top: 3px; }
+  .cues { color: var(--muted); font-size: .9rem; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  details.drill[open] .cues { display: block; }
+  .tip { margin: 0; font-size: .9rem; background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; }
+  .lvls { list-style: none; padding: 0 !important; display: grid; gap: 6px; }
+  .lvls b { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); }
+  details.extra { margin-top: 14px; }
+  details.extra > summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--muted); }
   details.drill > summary { list-style: none; cursor: pointer; }
   details.drill > summary::-webkit-details-marker { display: none; }
   .more { display: inline-block; margin-top: 6px; font-size: .85rem; font-weight: 600; color: var(--accent); }
@@ -102,8 +104,6 @@
   .drill-body p, .drill-body ol, .drill-body ul { margin: 0; }
   .drill-body ol, .drill-body ul { padding-left: 20px; }
   .drill-body li + li { margin-top: 3px; }
-  .facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 10px 0 0; }
-  .facts dt { color: var(--muted); font-size: .85rem; } .facts dd { margin: 0; }
   .sources { margin-top: 12px !important; font-size: .8rem; color: var(--muted); }
   .sources a, .drill-body a { color: var(--accent); }
   .photo { width: 100%; border-radius: 10px; margin-bottom: 8px; display: block; }
@@ -148,7 +148,7 @@
   .toast.show { opacity: 1; }
   [hidden] { display: none !important; }
   @media print {
-    header .tabs, #settings, .btn-row, .banner, .swap-row { display: none !important; }
+    header .tabs, #settings, .btn-row, .banner, .shuffle, .choose { display: none !important; }
     .card { box-shadow: none; border: 0; padding: 0; }
   }
 </style>
@@ -281,27 +281,18 @@ function syncGenerate() {
 const fmt = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
-// Per-level instructions for the levels on court. A single-level group gets one
-// plain note; a mixed group gets one labelled line per level.
-function levelNotes(d, levels, single) {
-  const rows = levels.map((l) => [l, noteFor(d, l)]).filter(([, n]) => n);
-  if (!rows.length) return "";
-  if (single) return `<p class="mixed">${esc(rows[0][1])}</p>`;
-  return `<ul class="mixed">${rows.map(([l, n]) => `<li><b>${LEVELS[l]}:</b> ${esc(n)}</li>`).join("")}</ul>`;
-}
+// Shuffle just this block: ↻ picks another fitting drill.
+const shuffleBtn = (i) => `<button class="shuffle" data-swap="${i}" aria-label="Shuffle this drill">↻ Shuffle</button>`;
 
-// Shuffle just this block: ↻ picks another fitting drill, the list lets the coach choose.
-function swapControls(plan, i, opts) {
+// …or the coach picks one from the list (inside the open card).
+function chooser(plan, i, opts) {
   const alts = alternativesFor(plan, i, opts);
   if (!alts.length) return "";
   const lv = (d) => d.minLevel === d.maxLevel ? LEVELS[d.minLevel] : `${LEVELS[d.minLevel]}–${LEVELS[d.maxLevel]}`;
-  return `<div class="swap-row">
-    <button class="btn secondary small" data-swap="${i}" aria-label="Shuffle this drill">↻ Shuffle</button>
-    <select class="choose" data-choose="${i}" aria-label="Choose a different drill">
-      <option value="">Choose… (${alts.length} options)</option>
+  return `<select class="choose" data-choose="${i}" aria-label="Choose a different drill">
+      <option value="">Pick a different drill… (${alts.length})</option>
       ${alts.map((d) => `<option value="${esc(d.id)}">${esc(d.name)} · ${lv(d)}</option>`).join("")}
-    </select>
-  </div>`;
+    </select>`;
 }
 
 function replaceBlock(i, drill) {
@@ -315,37 +306,39 @@ function replaceBlock(i, drill) {
   toast(`${state.plan[i].label}: ${state.plan[i].drill.name}`);
 }
 
-// How to organise this many players for the drill.
-function groupNote(d, players) {
-  const g = d.groupNotes?.[players];
-  return g?.how ? `<p class="group"><b>👥 ${players} players:</b> ${esc(g.how)}</p>` : "";
-}
-
 const list = (title, xs, ordered) => xs?.length
   ? `<h4>${title}</h4><${ordered ? "ol" : "ul"}>${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</${ordered ? "ol" : "ul"}>` : "";
 
-function drillBody(d) {
+// The open card, in the order a coach needs it on court: picture → how to set up
+// this group → steps → what to look for → per-level tweaks. The rest is tucked away.
+function drillBody(d, { levels, players }, extra = "") {
   const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+  const group = d.groupNotes?.[players]?.how;
+  const notes = levels.map((l) => [l, noteFor(d, l)]).filter(([, n]) => n);
+  const lvl = notes.length === 1
+    ? `<h4>For ${LEVELS[notes[0][0]]}</h4><p>${esc(notes[0][1])}</p>`
+    : notes.length ? `<h4>Per level</h4><ul class="lvls">${notes.map(([l, n]) => `<li><b>${LEVELS[l]}</b>${esc(n)}</li>`).join("")}</ul>` : "";
+  const more = [
+    list("Common mistakes → fix", d.commonMistakes),
+    d.equipment ? `<h4>Equipment</h4><p>${esc(d.equipment)}</p>` : "",
+    d.videoUrl ? `<p style="margin-top:10px"><a href="${esc(d.videoUrl)}" target="_blank" rel="noopener">▶ Watch a video demo</a></p>` : "",
+    d.sources?.length ? `<p class="sources">Based on: ${d.sources.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>` : "",
+  ].join("");
   return `<div class="drill-body">
     ${d.imageUrl ? `<img class="photo" src="${esc(d.imageUrl)}" alt="${esc(d.name)}" loading="lazy">` : ""}
     ${d.diagram ? courtSVG(d.diagram, `Court diagram: ${d.name}`) + DIAGRAM_LEGEND : ""}
-    <dl class="facts">
-      ${d.players ? `<dt>Players</dt><dd>${esc(d.players)}</dd>` : ""}
-      ${d.equipment ? `<dt>Equipment</dt><dd>${esc(d.equipment)}</dd>` : ""}
-      ${d.successTarget ? `<dt>Goal</dt><dd>${esc(d.successTarget)}</dd>` : ""}
-    </dl>
-    ${d.setup ? `<h4>Setup</h4><p>${esc(d.setup)}</p>` : ""}
+    ${group ? `<h4>👥 ${players} players</h4><p class="tip">${esc(group)}</p>` : d.setup ? `<h4>Setup</h4><p>${esc(d.setup)}</p>` : ""}
     ${list("Steps", d.steps, true)}
-    ${list("Coaching points", d.coachingPoints)}
-    ${list("Common mistakes → fix", d.commonMistakes)}
-    ${d.videoUrl ? `<p><a href="${esc(d.videoUrl)}" target="_blank" rel="noopener">▶ Watch a video demo</a></p>` : ""}
-    ${d.sources?.length ? `<p class="sources">Based on: ${d.sources.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>` : ""}
+    ${list("Watch for", d.coachingPoints)}
+    ${d.successTarget ? `<h4>🎯 Goal</h4><p>${esc(d.successTarget)}</p>` : ""}
+    ${lvl}
+    ${more ? `<details class="extra"><summary>Mistakes, equipment & sources</summary>${more}</details>` : ""}
+    ${extra}
   </div>`;
 }
 
 function render() {
   const { plan, opts } = state;
-  const mixed = Math.max(...opts.levels) > Math.min(...opts.levels);
   $("sum-title").textContent = opts.levels.map((l) => LEVELS[l]).join(" + ");
   $("sum-meta").textContent = `${opts.players} players · ${SESSION_MINUTES} min · Serve ${opts.serve ? "10 min" : "off"} · Games ${opts.game ? `${opts.game} min` : "off"}`;
   $("bar").innerHTML = plan.map((it) => {
@@ -358,15 +351,12 @@ function render() {
       return `<li class="item break"><div class="time">${fmt(it.start)}</div><div><div class="block">Break</div><div class="name">💧 Water break <span class="mins">· ${it.minutes}'</span></div></div></li>`;
     const d = it.drill || {};
     return `<li class="item"><div class="time">${fmt(it.start)}</div><div>
-      <div class="block">${esc(it.label)}</div>
+      <div class="head"><div class="block">${esc(it.label)}</div>${shuffleBtn(i)}</div>
       <details class="drill"><summary>
         <div class="name">${esc(d.name || "—")} <span class="mins">· ${it.minutes}'</span></div>
         <p class="cues">${esc(d.summary)}</p>
-        ${groupNote(d, opts.players)}
-        ${levelNotes(d, opts.levels, !mixed)}
-        <span class="more">Show how to run it</span>
-      </summary>${drillBody(d)}</details>
-      ${swapControls(plan, i, swapOpts)}
+        <span class="more">How to run it</span>
+      </summary>${drillBody(d, opts, chooser(plan, i, swapOpts))}</details>
     </div></li>`;
   }).join("");
   $("save").disabled = !state.online || state.saved;
@@ -427,10 +417,8 @@ function renderLibrary() {
         <div class="name">${esc(d.name)}</div>
         <div class="lvl">${lv(d)}${groupFit(d, players) === 0 ? `<span class="unfit">Not for ${players} players</span>` : ""}</div>
         <p class="cues">${esc(d.summary)}</p>
-        ${groupNote(d, players)}
-        ${levelNotes(d, (levels.length ? levels : [0, 1, 2, 3]).filter((l) => d.levelNotes[l]), false)}
-        <span class="more">Show how to run it</span>
-      </summary>${drillBody(d)}</details></div>`).join("")
+        <span class="more">How to run it</span>
+      </summary>${drillBody(d, { players, levels: (levels.length ? levels : [0, 1, 2, 3]).filter((l) => d.levelNotes[l]) })}</details></div>`).join("")
     : `<p class="empty">No drills in this category for these levels.</p>`;
 }
 
