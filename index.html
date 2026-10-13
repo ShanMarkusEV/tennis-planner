@@ -10,6 +10,7 @@
   :root {
     --bg: #f6f7f2; --surface: #ffffff; --surface-2: #eef0e7; --text: #1b1f17; --muted: #5d6555;
     --border: #d9ddcf; --accent: #3f7d20; --accent-ink: #ffffff; --accent-soft: #e2efd9;
+    --court: #3a7d5c; --court-out: #2f6a4c; --court-line: #ffffff; --court-net: #e5e7eb;
     --warn-bg: #fff4d6; --warn-ink: #6b4e00; --break: #2b6cb0; --break-soft: #e3eefa;
     --radius: 14px; --shadow: 0 1px 2px rgb(0 0 0 / .06), 0 4px 16px rgb(0 0 0 / .04);
     color-scheme: light;
@@ -18,13 +19,15 @@
     :root:not([data-theme="light"]) {
       --bg: #11140f; --surface: #1a1e17; --surface-2: #232820; --text: #e8ecdf; --muted: #9ca592;
       --border: #30362b; --accent: #8fd16a; --accent-ink: #11140f; --accent-soft: #263a1c;
-      --warn-bg: #3a2f10; --warn-ink: #f3d68a; --break: #7fb2ec; --break-soft: #18263a;
+      --court: #2c5e46; --court-out: #234c38; --court-line: #e5e7eb; --court-net: #cbd5e1;
+    --warn-bg: #3a2f10; --warn-ink: #f3d68a; --break: #7fb2ec; --break-soft: #18263a;
       --shadow: none; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --bg: #11140f; --surface: #1a1e17; --surface-2: #232820; --text: #e8ecdf; --muted: #9ca592;
     --border: #30362b; --accent: #8fd16a; --accent-ink: #11140f; --accent-soft: #263a1c;
+    --court: #2c5e46; --court-out: #234c38; --court-line: #e5e7eb; --court-net: #cbd5e1;
     --warn-bg: #3a2f10; --warn-ink: #f3d68a; --break: #7fb2ec; --break-soft: #18263a;
     --shadow: none; color-scheme: dark;
   }
@@ -75,7 +78,50 @@
   .name { font-weight: 600; margin: 1px 0 4px; }
   .mins { color: var(--muted); font-weight: 500; font-size: .9rem; white-space: nowrap; }
   .cues { color: var(--muted); font-size: .9rem; margin: 0; }
-  .mixed { margin: 6px 0 0; font-size: .85rem; background: var(--accent-soft); border-radius: 8px; padding: 6px 9px; }
+  .mixed { margin: 6px 0 0; font-size: .85rem; background: var(--accent-soft); border-radius: 8px; padding: 6px 9px; list-style: none; }
+  ul.mixed li + li { margin-top: 3px; }
+  details.drill > summary { list-style: none; cursor: pointer; }
+  details.drill > summary::-webkit-details-marker { display: none; }
+  .more { display: inline-block; margin-top: 6px; font-size: .85rem; font-weight: 600; color: var(--accent); }
+  .more::after { content: " ▾"; }
+  details.drill[open] .more::after { content: " ▴"; }
+  details.drill[open] .more { font-size: 0; } details.drill[open] .more::before { content: "Hide details"; font-size: .85rem; }
+  .drill-body { margin-top: 10px; font-size: .92rem; }
+  .drill-body h4 { margin: 14px 0 4px; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .drill-body p, .drill-body ol, .drill-body ul { margin: 0; }
+  .drill-body ol, .drill-body ul { padding-left: 20px; }
+  .drill-body li + li { margin-top: 3px; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 10px 0 0; }
+  .facts dt { color: var(--muted); font-size: .85rem; } .facts dd { margin: 0; }
+  .sources { margin-top: 12px !important; font-size: .8rem; color: var(--muted); }
+  .sources a, .drill-body a { color: var(--accent); }
+  .photo { width: 100%; border-radius: 10px; margin-bottom: 8px; display: block; }
+  svg.diagram { width: 100%; height: auto; display: block; border-radius: 10px; }
+  .dg-surround { fill: var(--court-out); } .dg-court { fill: var(--court); }
+  .dg-lines line, .dg-lines rect { stroke: var(--court-line); stroke-width: .35; }
+  .dg-net { stroke: var(--court-net); stroke-width: .7; }
+  .dg-target { fill: rgb(250 204 21 / .35); stroke: #facc15; stroke-width: .3; }
+  .dg-cone { fill: #f97316; }
+  .dg-feed { stroke: #f97316; stroke-width: .5; } .dg-feed-head { fill: #f97316; }
+  .dg-shot { stroke: #fde047; stroke-width: .55; } .dg-shot-head { fill: #fde047; }
+  .dg-move { stroke: #fff; stroke-width: .45; } .dg-move-head { fill: #fff; }
+  .dg-player circle { fill: #1d4ed8; stroke: #fff; stroke-width: .35; }
+  .dg-coach circle { fill: #dc2626; stroke: #fff; stroke-width: .35; }
+  .dg-player text, .dg-coach text { fill: #fff; font: 700 2.2px system-ui, sans-serif; }
+  .dg-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .75rem; color: var(--muted); margin: 6px 0 2px; }
+  .dg-legend i { display: inline-block; width: 14px; height: 10px; margin-right: 4px; vertical-align: -1px; border-radius: 2px; }
+  .lg-player { background: #1d4ed8; border-radius: 50% !important; width: 10px !important; }
+  .lg-coach { background: #dc2626; border-radius: 50% !important; width: 10px !important; }
+  .lg-feed { border-top: 2px dashed #f97316; height: 0 !important; }
+  .lg-shot { border-top: 2px solid #eab308; height: 0 !important; }
+  .lg-move { border-top: 2px dotted var(--muted); height: 0 !important; }
+  .lg-cone { width: 0 !important; height: 0 !important; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid #f97316; border-radius: 0 !important; }
+  .lg-target { background: rgb(250 204 21 / .45); border: 1px solid #eab308; }
+  .lib-filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; }
+  .lib-filters .chip { min-height: 36px; padding: 6px 12px; font-size: .85rem; flex: none; }
+  .lib-item { border-top: 1px solid var(--border); padding: 12px 0; }
+  .lib-item:first-child { border-top: 0; }
+  .lvl { font-size: .75rem; color: var(--muted); }
   .item.break .block { color: var(--break); }
   .item.break .name { color: var(--break); }
   .bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin: 0 0 14px; background: var(--surface-2); }
@@ -102,6 +148,7 @@
     <h1>🎾 Training Planner</h1>
     <nav class="tabs" role="tablist">
       <button role="tab" aria-selected="true" data-tab="plan">Plan</button>
+      <button role="tab" aria-selected="false" data-tab="drills">Drills</button>
       <button role="tab" aria-selected="false" data-tab="history">History</button>
     </nav>
   </header>
@@ -133,6 +180,15 @@
     </div>
   </section>
 
+  <section id="tab-drills" hidden>
+    <div class="card">
+      <h2>Drill library</h2>
+      <p class="lvl" id="lib-hint" style="margin:-4px 0 10px"></p>
+      <div class="lib-filters" id="lib-filters"></div>
+      <div id="library"></div>
+    </div>
+  </section>
+
   <section id="tab-history" hidden>
     <div class="card"><h2>Last 10 saved sessions</h2><div id="history"></div></div>
   </section>
@@ -141,8 +197,9 @@
 
 <script type="module">
 import { DRILLS } from "./drills.js";
-import { LEVELS, SESSION_MINUTES, buildSession, planToText } from "./planner.js";
+import { LEVELS, SESSION_MINUTES, buildSession, planToText, noteFor } from "./planner.js";
 import { loadDrills, loadHistory, saveSession, recentDrillIds } from "./db.js";
+import { courtSVG, DIAGRAM_LEGEND } from "./diagram.js";
 
 const $ = (id) => document.getElementById(id);
 const PREFS_KEY = "tennis-planner:prefs";
@@ -177,7 +234,7 @@ $("serve").checked = prefs.serve;
 $("game").checked = prefs.game;
 
 function currentOpts() {
-  const levels = [...document.querySelectorAll(".chip[aria-pressed=true]")].map((b) => +b.dataset.level);
+  const levels = [...document.querySelectorAll("#levels .chip[aria-pressed=true]")].map((b) => +b.dataset.level);
   return { levels, serve: $("serve").checked, game: $("game").checked };
 }
 function syncGenerate() {
@@ -189,6 +246,37 @@ function syncGenerate() {
 // ── render ──
 const fmt = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+// Per-level instructions for the levels on court. A single-level group gets one
+// plain note; a mixed group gets one labelled line per level.
+function levelNotes(d, levels, single) {
+  const rows = levels.map((l) => [l, noteFor(d, l)]).filter(([, n]) => n);
+  if (!rows.length) return "";
+  if (single) return `<p class="mixed">${esc(rows[0][1])}</p>`;
+  return `<ul class="mixed">${rows.map(([l, n]) => `<li><b>${LEVELS[l]}:</b> ${esc(n)}</li>`).join("")}</ul>`;
+}
+
+const list = (title, xs, ordered) => xs?.length
+  ? `<h4>${title}</h4><${ordered ? "ol" : "ul"}>${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</${ordered ? "ol" : "ul"}>` : "";
+
+function drillBody(d) {
+  const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+  return `<div class="drill-body">
+    ${d.imageUrl ? `<img class="photo" src="${esc(d.imageUrl)}" alt="${esc(d.name)}" loading="lazy">` : ""}
+    ${d.diagram ? courtSVG(d.diagram, `Court diagram: ${d.name}`) + DIAGRAM_LEGEND : ""}
+    <dl class="facts">
+      ${d.players ? `<dt>Players</dt><dd>${esc(d.players)}</dd>` : ""}
+      ${d.equipment ? `<dt>Equipment</dt><dd>${esc(d.equipment)}</dd>` : ""}
+      ${d.successTarget ? `<dt>Goal</dt><dd>${esc(d.successTarget)}</dd>` : ""}
+    </dl>
+    ${d.setup ? `<h4>Setup</h4><p>${esc(d.setup)}</p>` : ""}
+    ${list("Steps", d.steps, true)}
+    ${list("Coaching points", d.coachingPoints)}
+    ${list("Common mistakes → fix", d.commonMistakes)}
+    ${d.videoUrl ? `<p><a href="${esc(d.videoUrl)}" target="_blank" rel="noopener">▶ Watch a video demo</a></p>` : ""}
+    ${d.sources?.length ? `<p class="sources">Based on: ${d.sources.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>` : ""}
+  </div>`;
+}
 
 function render() {
   const { plan, opts } = state;
@@ -205,9 +293,12 @@ function render() {
     const d = it.drill || {};
     return `<li class="item"><div class="time">${fmt(it.start)}</div><div>
       <div class="block">${esc(it.label)}</div>
-      <div class="name">${esc(d.name || "—")} <span class="mins">· ${it.minutes}'</span></div>
-      <p class="cues">${esc(d.cues)}</p>
-      ${mixed && d.mixedNote ? `<p class="mixed"><b>Mixed group:</b> ${esc(d.mixedNote)}</p>` : ""}
+      <details class="drill"><summary>
+        <div class="name">${esc(d.name || "—")} <span class="mins">· ${it.minutes}'</span></div>
+        <p class="cues">${esc(d.summary)}</p>
+        ${levelNotes(d, opts.levels, !mixed)}
+        <span class="more">Show how to run it</span>
+      </summary>${drillBody(d)}</details>
     </div></li>`;
   }).join("");
   $("save").disabled = !state.online || state.saved;
@@ -243,6 +334,37 @@ function renderHistory() {
   }).join("");
 }
 
+// ── drill library: every drill the selected levels can do, by category ──
+const CATEGORIES = [["all", "All"], ["warmup", "Warm-up"], ["forehand", "Forehand"], ["backhand", "Backhand"], ["net", "Net"],
+  ["movement", "Movement"], ["rally", "Rally"], ["serve", "Serve"], ["game", "Game"], ["cooldown", "Cool-down"]];
+let libCat = "all";
+function renderLibrary() {
+  const levels = currentOpts().levels;
+  const lo = levels.length ? Math.min(...levels) : 0;
+  const hi = levels.length ? Math.max(...levels) : 3;
+  $("lib-hint").textContent = levels.length
+    ? `Showing drills that suit ${levels.map((l) => LEVELS[l]).join(" + ")} (change on the Plan tab).`
+    : "Showing all drills. Pick levels on the Plan tab to filter.";
+  $("lib-filters").innerHTML = CATEGORIES.map(([k, n]) =>
+    `<button class="chip" data-cat="${k}" aria-pressed="${k === libCat}">${n}</button>`).join("");
+  $("lib-filters").querySelectorAll(".chip").forEach((b) => (b.onclick = () => { libCat = b.dataset.cat; renderLibrary(); }));
+  const shown = state.drills
+    .filter((d) => (libCat === "all" || d.category === libCat) && d.minLevel <= hi && d.maxLevel >= lo)
+    .sort((a, b) => CATEGORIES.findIndex(([k]) => k === a.category) - CATEGORIES.findIndex(([k]) => k === b.category) || a.minLevel - b.minLevel);
+  const lv = (d) => d.minLevel === d.maxLevel ? LEVELS[d.minLevel] : `${LEVELS[d.minLevel]} – ${LEVELS[d.maxLevel]}`;
+  const cat = (d) => CATEGORIES.find(([k]) => k === d.category)?.[1] ?? d.category;
+  $("library").innerHTML = shown.length ? shown.map((d) => `<div class="lib-item">
+      <div class="block">${esc(cat(d))} · ${esc(d.type)}</div>
+      <details class="drill"><summary>
+        <div class="name">${esc(d.name)}</div>
+        <div class="lvl">${lv(d)}</div>
+        <p class="cues">${esc(d.summary)}</p>
+        ${levelNotes(d, (levels.length ? levels : [0, 1, 2, 3]).filter((l) => d.levelNotes[l]), false)}
+        <span class="more">Show how to run it</span>
+      </summary>${drillBody(d)}</details></div>`).join("")
+    : `<p class="empty">No drills in this category for these levels.</p>`;
+}
+
 function toast(msg) {
   $("toast").textContent = msg;
   $("toast").classList.add("show");
@@ -275,6 +397,8 @@ document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
   $("tab-plan").hidden = b.dataset.tab !== "plan";
   $("tab-history").hidden = b.dataset.tab !== "history";
+  $("tab-drills").hidden = b.dataset.tab !== "drills";
+  if (b.dataset.tab === "drills") renderLibrary();
 }));
 
 // ── boot: try Supabase, fall back to built-in drills ──

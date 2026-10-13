@@ -1,6 +1,6 @@
 // Sanity checks for buildSession across every level combo × toggle × seed.
 import assert from "node:assert/strict";
-import { buildSession, totalMinutes, planToText, SESSION_MINUTES } from "../planner.js";
+import { buildSession, totalMinutes, planToText, noteFor, SESSION_MINUTES } from "../planner.js";
 import { DRILLS } from "../drills.js";
 
 const combos = [];
@@ -32,6 +32,11 @@ for (const levels of combos)
           if (i && p.kind === "break") assert.notEqual(plan[i - 1].kind, "break", `adjacent breaks ${ctx}`);
         });
         assert.ok(planToText(plan, { levels, serve, game }).includes("Warm-up"));
+        // every drill has coaching content and notes for each selected level it covers
+        for (const p of drills) {
+          assert.ok(p.drill.steps.length >= 3 && p.drill.summary && p.drill.diagram, `content ${p.drill.id}`);
+          for (const l of levels) assert.ok(noteFor(p.drill, l), `no instruction for ${p.drill.id} L${l}`);
+        }
         n++;
       }
 
@@ -41,15 +46,21 @@ const b = buildSession({ levels: [1, 2], serve: true, game: true, drills: DRILLS
 assert.deepEqual(a, b);
 
 // Recent drills are picked noticeably less often.
+// Most frequently picked drill for this setup, so the check doesn't depend on drill ids.
+const freq = {};
+for (let seed = 1; seed <= 300; seed++)
+  for (const x of buildSession({ levels: [1, 2], serve: false, game: false, drills: DRILLS, seed }))
+    if (x.drill) freq[x.drill.id] = (freq[x.drill.id] || 0) + 1;
+const target = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
 const count = (recent) => {
   let hits = 0;
   for (let seed = 1; seed <= 300; seed++) {
     const p = buildSession({ levels: [1, 2], serve: false, game: false, drills: DRILLS, recentDrillIds: recent, seed });
-    if (p.some((x) => x.drill?.id === "fh-side")) hits++;
+    if (p.some((x) => x.drill?.id === target)) hits++;
   }
   return hits;
 };
-const fresh = count([]), recent = count(["fh-side"]);
+const fresh = count([]), recent = count([target]);
 assert.ok(recent < fresh / 2, `recent penalty fresh=${fresh} recent=${recent}`);
 
-console.log(`✓ ${n} plans valid · determinism ok · recent penalty fh-side ${fresh}→${recent}/300`);
+console.log(`✓ ${n} plans valid · determinism ok · recent penalty ${target} ${fresh}→${recent}/300`);

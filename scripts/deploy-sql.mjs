@@ -4,9 +4,10 @@
 //
 //   node scripts/deploy-sql.mjs                # schema + insert missing drills
 //   node scripts/deploy-sql.mjs --overwrite    # also overwrite edited drills from drills.js
+//   node scripts/deploy-sql.mjs --prune        # hide (active=false) drills that are no longer in drills.js
 import { readFileSync } from "node:fs";
 import pg from "pg";
-import { DRILLS } from "../drills.js";
+import { DRILL_ROWS } from "../drills.js";
 
 const env = {};
 try {
@@ -22,6 +23,7 @@ if (!connectionString) {
 }
 
 const overwrite = process.argv.includes("--overwrite");
+const prune = process.argv.includes("--prune");
 const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
 
 try {
@@ -29,21 +31,25 @@ try {
   await client.query(readFileSync("supabase/schema.sql", "utf8"));
   console.log("→ schema applied");
 
-  const cols = "id, name, category, type, min_level, max_level, intensity, cues, mixed_note";
-  const onConflict = overwrite
-    ? `on conflict (id) do update set (${cols.slice(4)}, updated_at) =
-       (excluded.name, excluded.category, excluded.type, excluded.min_level, excluded.max_level,
-        excluded.intensity, excluded.cues, excluded.mixed_note, now())`
+  const cols = Object.keys(DRILL_ROWS[0]);
+  const json = new Set(["level_notes", "diagram"]);
+  const conflict = overwrite
+    ? `on conflict (id) do update set ${cols.filter((c) => c !== "id").map((c) => `${c} = excluded.${c}`).join(", ")}, updated_at = now()`
     : "on conflict (id) do nothing";
-  let added = 0;
-  for (const d of DRILLS) {
-    const r = await client.query(
-      `insert into planner_drills (${cols}) values ($1,$2,$3,$4,$5,$6,$7,$8,$9) ${onConflict}`,
-      [d.id, d.name, d.category, d.type, d.minLevel, d.maxLevel, d.intensity, d.cues, d.mixedNote],
+  let changed = 0;
+  for (const r of DRILL_ROWS) {
+    const res = await client.query(
+      `insert into planner_drills (${cols.join(", ")}) values (${cols.map((_, i) => `$${i + 1}`).join(", ")}) ${conflict}`,
+      cols.map((c) => (json.has(c) ? JSON.stringify(r[c]) : r[c])),
     );
-    added += r.rowCount;
+    changed += res.rowCount;
   }
-  console.log(`→ drills ${overwrite ? "upserted" : "inserted"}: ${added}/${DRILLS.length}`);
+  console.log(`→ drills ${overwrite ? "upserted" : "inserted"}: ${changed}/${DRILL_ROWS.length}`);
+
+  if (prune) {
+    const res = await client.query("update planner_drills set active = false where active and not (id = any($1))", [DRILL_ROWS.map((r) => r.id)]);
+    console.log(`→ deactivated drills not in drills.js: ${res.rowCount}`);
+  }
   console.log("✓ Deploy complete");
 } catch (e) {
   console.error("✗ Deploy failed:", e.message);

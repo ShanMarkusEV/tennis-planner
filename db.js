@@ -2,6 +2,7 @@
 // Every call times out quickly so a paused free-tier project falls back to
 // the built-in drills instead of hanging the page.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { fromRow } from "./drills.js";
 
 const TIMEOUT_MS = 6000;
 const RECENT_SESSIONS = 3;
@@ -24,17 +25,7 @@ async function rest(path, init = {}) {
 export async function loadDrills() {
   const rows = await rest("planner_drills?active=eq.true&select=*&order=id");
   if (!rows.length) throw new Error("No drills in database");
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    category: r.category,
-    type: r.type,
-    minLevel: r.min_level,
-    maxLevel: r.max_level,
-    intensity: r.intensity,
-    cues: r.cues,
-    mixedNote: r.mixed_note,
-  }));
+  return rows.map(fromRow);
 }
 
 export async function saveSession({ levels, serve, game, plan }) {

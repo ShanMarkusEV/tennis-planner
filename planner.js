@@ -39,7 +39,9 @@ function technicalSlots(lo, hi, units) {
     },
   ];
   // With enough time, add a live rally block to tie the strokes together.
-  if (units >= 15) slots.push({ key: "rally", label: "Rally", categories: ["rally"], type: "live", w: lo >= 2 ? 1.2 : 0.9 });
+  // Live forehand/backhand rally drills also qualify here.
+  if (units >= 15)
+    slots.push({ key: "rally", label: "Rally", categories: ["rally", "forehand", "backhand"], type: "live", w: lo >= 2 ? 1.2 : 0.9 });
   return slots;
 }
 
@@ -141,6 +143,18 @@ export function buildSession({ levels, serve, game, drills, recentDrillIds = [],
   return items;
 }
 
+// Instruction for level `l`. Drills only carry notes for their own level range; a
+// player outside it gets the nearest level's note with a cue to adjust.
+export function noteFor(d, l) {
+  const notes = d?.levelNotes || {};
+  if (notes[l]) return notes[l];
+  const near = Math.min(Math.max(l, d.minLevel), d.maxLevel);
+  if (!notes[near]) return "";
+  return l > near
+    ? `Run the ${LEVELS[near]} version and step it up: faster feeds, smaller targets, more movement. (${notes[near]})`
+    : `Run the ${LEVELS[near]} version and make it easier: closer, slower, softer balls. (${notes[near]})`;
+}
+
 export function totalMinutes(plan) {
   return plan.reduce((a, it) => a + it.minutes, 0);
 }
@@ -153,13 +167,15 @@ export function planToText(plan, { levels, serve, game }) {
     `${SESSION_MINUTES} min · Serve ${serve ? "✓" : "✗"} · Game ${game ? "✓" : "✗"}`,
     "",
   ];
-  const mixed = Math.max(...levels) > Math.min(...levels);
   const lines = plan.map((it) => {
     if (it.kind === "break") return `${fmt(it.start)}  💧 Water break (${it.minutes}')`;
     const d = it.drill;
     let s = `${fmt(it.start)}  ${it.label}: ${d ? d.name : "—"} (${it.minutes}')`;
-    if (d?.cues) s += `\n        ${d.cues}`;
-    if (mixed && d?.mixedNote) s += `\n        Mixed: ${d.mixedNote}`;
+    if (d?.summary) s += `\n        ${d.summary}`;
+    for (const l of levels) {
+      const n = d && noteFor(d, l);
+      if (n) s += `\n        • ${LEVELS[l]}: ${n}`;
+    }
     return s;
   });
   return [...head, ...lines].join("\n");

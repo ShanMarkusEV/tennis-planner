@@ -4,18 +4,40 @@
 create table if not exists planner_drills (
   id          text primary key,
   name        text not null,
-  category    text not null check (category in
-                ('warmup','forehand','backhand','net','movement','rally','serve','game','cooldown')),
-  type        text not null check (type in ('static','moving','live')),
-  min_level   int  not null check (min_level between 0 and 3),
-  max_level   int  not null check (max_level between 0 and 3),
-  intensity   int  not null default 2 check (intensity between 1 and 3),
-  cues        text not null default '',
-  mixed_note  text not null default '',
+  category    text not null,
+  type        text not null,
+  min_level   int  not null,
+  max_level   int  not null,
+  intensity   int  not null default 2,
   active      boolean not null default true,
-  updated_at  timestamptz not null default now(),
-  check (min_level <= max_level)
+  updated_at  timestamptz not null default now()
 );
+
+-- Coaching content (v2). Arrays/JSON are editable in the Supabase Table Editor.
+alter table planner_drills
+  add column if not exists summary         text   not null default '',
+  add column if not exists players         text   not null default '',
+  add column if not exists equipment       text   not null default '',
+  add column if not exists setup           text   not null default '',
+  add column if not exists steps           text[] not null default '{}',
+  add column if not exists coaching_points text[] not null default '{}',
+  add column if not exists common_mistakes text[] not null default '{}',
+  add column if not exists level_notes     jsonb  not null default '{}',   -- {"0": "...", "3": "..."}
+  add column if not exists success_target  text   not null default '',
+  add column if not exists diagram         jsonb,                          -- see README "Diagrams"
+  add column if not exists image_url       text,                           -- your own photo (optional)
+  add column if not exists video_url       text,                           -- demo video link (optional)
+  add column if not exists sources         text[] not null default '{}';
+alter table planner_drills drop column if exists cues, drop column if exists mixed_note;
+
+alter table planner_drills drop constraint if exists planner_drills_category_check;
+alter table planner_drills add constraint planner_drills_category_check check (category in
+  ('warmup','forehand','backhand','net','movement','rally','serve','game','cooldown'));
+alter table planner_drills drop constraint if exists planner_drills_type_check;
+alter table planner_drills add constraint planner_drills_type_check check (type in ('static','moving','live'));
+alter table planner_drills drop constraint if exists planner_drills_levels_check;
+alter table planner_drills add constraint planner_drills_levels_check
+  check (min_level between 0 and 3 and max_level between 0 and 3 and min_level <= max_level);
 
 create table if not exists planner_sessions (
   id          uuid primary key default gen_random_uuid(),
