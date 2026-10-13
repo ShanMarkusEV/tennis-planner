@@ -7,10 +7,11 @@ blocks. Static site on GitHub Pages + Supabase free tier. $0.
 Live: https://shanmarkusev.github.io/tennis-planner/
 
 ## What coaches get
-- **Plan tab:** pick any mix of levels, generate, and tap a drill to open its coaching card:
+- **Plan tab:** pick any mix of levels and the group size (4, 6 or 8 players, one court, one coach), generate, and tap a drill to open its coaching card:
   - a court diagram
   - setup, step-by-step instructions, coaching points and common mistakes with fixes
   - players, equipment and the success goal
+  - how to organise **that many players** (lines, pairs, rotations, what waiting players do)
   - how to run it **for each selected level**
   - source links
 - **Drills tab:** browse the whole library (75 drills), filtered by the selected levels and by category.
@@ -21,7 +22,7 @@ Live: https://shanmarkusev.github.io/tennis-planner/
   the strongest level are preferred. Every drill carries a note for each level in its range.
   A selected level outside that range gets the nearest level's note with a "step it up" or "make it easier" cue.
 - Fixed blocks: warm-up 10', two 5' water breaks, cool-down 5', serve 15' (optional),
-  game 20' (optional). The rest is split across forehand (static → moving),
+  serve 10' (optional, capped), game 20' (optional). The rest is split across forehand (static → moving),
   backhand (static → moving), net/movement and, if there's time, a live rally block.
   Lower groups get more static time; higher groups more moving/live time.
 - Total is always exactly 120 min. Drills from the last 3 saved sessions are picked far less.
@@ -48,6 +49,7 @@ Changes show up on the next page load, with no redeploy. Levels: 0 Newbie … 3 
 | `image_url` | optional: a link to **your own** photo (e.g. one taken on court), shown above the diagram |
 | `video_url` | optional: a demo video link (e.g. YouTube) |
 | `diagram` | JSON court diagram, see below |
+| `group_notes` | JSON per group size: `{"8": {"fit": 1, "how": "two stations…"}}`. `fit` is 0 (never picked for that size), 1 (works with adaptation) or 2 (ideal, preferred) |
 
 ### Diagrams
 Coordinates are in feet on a doubles court seen from above:

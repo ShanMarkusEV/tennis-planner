@@ -27,7 +27,8 @@ alter table planner_drills
   add column if not exists diagram         jsonb,                          -- see README "Diagrams"
   add column if not exists image_url       text,                           -- your own photo (optional)
   add column if not exists video_url       text,                           -- demo video link (optional)
-  add column if not exists sources         text[] not null default '{}';
+  add column if not exists sources         text[] not null default '{}',
+  add column if not exists group_notes     jsonb  not null default '{}';   -- {"4": {"fit": 0-2, "how": "..."}, "6": ..., "8": ...}
 alter table planner_drills drop column if exists cues, drop column if exists mixed_note;
 
 alter table planner_drills drop constraint if exists planner_drills_category_check;
@@ -48,6 +49,7 @@ create table if not exists planner_sessions (
   -- [{start, minutes, kind, label, drillId}]
   plan        jsonb not null check (jsonb_typeof(plan) = 'array' and jsonb_array_length(plan) <= 40)
 );
+alter table planner_sessions add column if not exists players int check (players in (4, 6, 8));
 create index if not exists planner_sessions_created_idx on planner_sessions (created_at desc);
 
 -- RLS: the static site uses the public anon key.

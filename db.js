@@ -28,7 +28,7 @@ export async function loadDrills() {
   return rows.map(fromRow);
 }
 
-export async function saveSession({ levels, serve, game, plan }) {
+export async function saveSession({ levels, serve, game, players, plan }) {
   await rest("planner_sessions", {
     method: "POST",
     headers: { Prefer: "return=minimal" },
@@ -36,6 +36,7 @@ export async function saveSession({ levels, serve, game, plan }) {
       levels,
       serve,
       game,
+      players,
       plan: plan.map((it) => ({
         start: it.start,
         minutes: it.minutes,

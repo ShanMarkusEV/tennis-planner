@@ -1,6 +1,6 @@
 // Sanity checks for buildSession across every level combo × toggle × seed.
 import assert from "node:assert/strict";
-import { buildSession, totalMinutes, planToText, noteFor, SESSION_MINUTES } from "../planner.js";
+import { buildSession, totalMinutes, planToText, noteFor, groupFit, SESSION_MINUTES, GROUP_SIZES } from "../planner.js";
 import { DRILLS } from "../drills.js";
 
 const combos = [];
@@ -8,11 +8,12 @@ for (let mask = 1; mask < 16; mask++) combos.push([0, 1, 2, 3].filter((l) => mas
 
 let n = 0;
 for (const levels of combos)
+ for (const players of GROUP_SIZES)
   for (const serve of [false, true])
     for (const game of [false, true])
-      for (let seed = 1; seed <= 20; seed++) {
-        const plan = buildSession({ levels, serve, game, drills: DRILLS, seed });
-        const ctx = JSON.stringify({ levels, serve, game, seed });
+      for (let seed = 1; seed <= 10; seed++) {
+        const plan = buildSession({ levels, serve, game, players, drills: DRILLS, seed });
+        const ctx = JSON.stringify({ levels, players, serve, game, seed });
         const lo = Math.min(...levels);
         const drills = plan.filter((p) => p.kind === "drill");
 
@@ -24,6 +25,10 @@ for (const levels of combos)
         assert.equal(drills.some((p) => p.drill.category === "serve"), serve, `serve ${ctx}`);
         assert.equal(drills.some((p) => p.drill.category === "game"), game, `game ${ctx}`);
         assert.equal(plan.filter((p) => p.kind === "break").length, 2, `breaks ${ctx}`);
+        for (const p of drills) {
+          if (p.drill.category === "serve") assert.ok(p.minutes <= 10, `serve over 10 min ${ctx}`);
+          assert.ok(groupFit(p.drill, players) > 0, `${p.drill.id} unsuitable for ${players} players ${ctx}`);
+        }
         assert.equal(plan[0].label, "Warm-up", ctx);
         assert.equal(plan.at(-1).label, "Cool-down", ctx);
         plan.forEach((p, i) => {
@@ -31,7 +36,7 @@ for (const levels of combos)
           if (i) assert.equal(p.start, plan[i - 1].start + plan[i - 1].minutes, `start ${ctx}`);
           if (i && p.kind === "break") assert.notEqual(plan[i - 1].kind, "break", `adjacent breaks ${ctx}`);
         });
-        assert.ok(planToText(plan, { levels, serve, game }).includes("Warm-up"));
+        assert.ok(planToText(plan, { levels, serve, game, players }).includes(`${players} players`));
         // every drill has coaching content and notes for each selected level it covers
         for (const p of drills) {
           assert.ok(p.drill.steps.length >= 3 && p.drill.summary && p.drill.diagram, `content ${p.drill.id}`);

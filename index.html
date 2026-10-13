@@ -51,6 +51,12 @@
     padding: 9px 14px; border-radius: 999px; font: inherit; font-size: .95rem; cursor: pointer; min-height: 44px;
   }
   .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 12px; }
+  .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; padding: 10px 0; border-radius: 9px; cursor: pointer; min-height: 44px; }
+  .seg button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .group { margin: 6px 0 0; font-size: .85rem; border-left: 3px solid var(--break); padding: 2px 0 2px 9px; }
+  .group b { color: var(--break); }
+  .unfit { font-size: .75rem; font-weight: 600; color: var(--warn-ink); background: var(--warn-bg); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
   .toggles { display: grid; gap: 4px; margin-top: 16px; }
   .toggle { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; cursor: pointer; min-height: 44px; }
   .toggle input { appearance: none; width: 46px; height: 28px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; transition: background .15s; margin: 0; flex: none; }
@@ -159,8 +165,10 @@
     <div class="card" id="settings">
       <h2>Who's on court</h2>
       <div class="chips" id="levels"></div>
+      <h2 style="margin-top:16px">Players on court</h2>
+      <div class="seg" id="players" role="radiogroup" aria-label="Players on court"></div>
       <div class="toggles">
-        <label class="toggle"><span>Include Serve<small>15 min serve block</small></span><input type="checkbox" id="serve"></label>
+        <label class="toggle"><span>Include Serve<small>10 min serve block</small></span><input type="checkbox" id="serve"></label>
         <label class="toggle"><span>Include Game time<small>20 min of match play</small></span><input type="checkbox" id="game"></label>
       </div>
       <div class="btn-row" style="margin-top:14px">
@@ -197,7 +205,7 @@
 
 <script type="module">
 import { DRILLS } from "./drills.js";
-import { LEVELS, SESSION_MINUTES, buildSession, planToText, noteFor } from "./planner.js";
+import { LEVELS, SESSION_MINUTES, GROUP_SIZES, buildSession, planToText, noteFor, groupFit } from "./planner.js";
 import { loadDrills, loadHistory, saveSession, recentDrillIds } from "./db.js";
 import { courtSVG, DIAGRAM_LEGEND } from "./diagram.js";
 
@@ -217,7 +225,7 @@ function writePrefs(p) {
 }
 
 // ── settings UI ──
-const prefs = readPrefs() || { levels: [1], serve: true, game: true };
+const prefs = { levels: [1], serve: true, game: true, players: 6, ...readPrefs() };
 LEVELS.forEach((name, i) => {
   const b = document.createElement("button");
   b.className = "chip";
@@ -230,12 +238,22 @@ LEVELS.forEach((name, i) => {
   };
   $("levels").append(b);
 });
+GROUP_SIZES.forEach((n) => {
+  const b = document.createElement("button");
+  b.textContent = n;
+  b.dataset.players = n;
+  b.setAttribute("role", "radio");
+  b.setAttribute("aria-checked", n === prefs.players);
+  b.onclick = () => $("players").querySelectorAll("button").forEach((x) => x.setAttribute("aria-checked", x === b));
+  $("players").append(b);
+});
 $("serve").checked = prefs.serve;
 $("game").checked = prefs.game;
 
 function currentOpts() {
   const levels = [...document.querySelectorAll("#levels .chip[aria-pressed=true]")].map((b) => +b.dataset.level);
-  return { levels, serve: $("serve").checked, game: $("game").checked };
+  const players = +($("players").querySelector("[aria-checked=true]")?.dataset.players || 6);
+  return { levels, players, serve: $("serve").checked, game: $("game").checked };
 }
 function syncGenerate() {
   const none = !currentOpts().levels.length;
@@ -254,6 +272,12 @@ function levelNotes(d, levels, single) {
   if (!rows.length) return "";
   if (single) return `<p class="mixed">${esc(rows[0][1])}</p>`;
   return `<ul class="mixed">${rows.map(([l, n]) => `<li><b>${LEVELS[l]}:</b> ${esc(n)}</li>`).join("")}</ul>`;
+}
+
+// How to organise this many players for the drill.
+function groupNote(d, players) {
+  const g = d.groupNotes?.[players];
+  return g?.how ? `<p class="group"><b>👥 ${players} players:</b> ${esc(g.how)}</p>` : "";
 }
 
 const list = (title, xs, ordered) => xs?.length
@@ -282,7 +306,7 @@ function render() {
   const { plan, opts } = state;
   const mixed = Math.max(...opts.levels) > Math.min(...opts.levels);
   $("sum-title").textContent = opts.levels.map((l) => LEVELS[l]).join(" + ");
-  $("sum-meta").textContent = `${SESSION_MINUTES} min · Serve ${opts.serve ? "on" : "off"} · Game ${opts.game ? "on" : "off"}`;
+  $("sum-meta").textContent = `${opts.players} players · ${SESSION_MINUTES} min · Serve ${opts.serve ? "on" : "off"} · Game ${opts.game ? "on" : "off"}`;
   $("bar").innerHTML = plan.map((it) => {
     const c = CAT_COLORS[it.kind === "break" ? "break" : it.drill?.category] || "var(--muted)";
     return `<i style="width:${(it.minutes / SESSION_MINUTES) * 100}%;background:${c}" title="${esc(it.label)}"></i>`;
@@ -296,6 +320,7 @@ function render() {
       <details class="drill"><summary>
         <div class="name">${esc(d.name || "—")} <span class="mins">· ${it.minutes}'</span></div>
         <p class="cues">${esc(d.summary)}</p>
+        ${groupNote(d, opts.players)}
         ${levelNotes(d, opts.levels, !mixed)}
         <span class="more">Show how to run it</span>
       </summary>${drillBody(d)}</details>
@@ -329,7 +354,7 @@ function renderHistory() {
     const when = new Date(s.created_at).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     const rows = s.plan.map((it) => it.kind === "break" ? `<li>${fmt(it.start)} Water break</li>`
       : `<li>${fmt(it.start)} ${esc(it.label)}: ${esc(byId.get(it.drillId)?.name || it.drillId)} (${it.minutes}')</li>`).join("");
-    return `<details class="hist"><summary><b>${esc(s.levels.map((l) => LEVELS[l]).join(" + "))}</b><span>${when}</span></summary>
+    return `<details class="hist"><summary><b>${esc(s.levels.map((l) => LEVELS[l]).join(" + "))}${s.players ? ` · ${s.players} players` : ""}</b><span>${when}</span></summary>
       <ul>${rows}</ul></details>`;
   }).join("");
 }
@@ -339,11 +364,11 @@ const CATEGORIES = [["all", "All"], ["warmup", "Warm-up"], ["forehand", "Forehan
   ["movement", "Movement"], ["rally", "Rally"], ["serve", "Serve"], ["game", "Game"], ["cooldown", "Cool-down"]];
 let libCat = "all";
 function renderLibrary() {
-  const levels = currentOpts().levels;
+  const { levels, players } = currentOpts();
   const lo = levels.length ? Math.min(...levels) : 0;
   const hi = levels.length ? Math.max(...levels) : 3;
   $("lib-hint").textContent = levels.length
-    ? `Showing drills that suit ${levels.map((l) => LEVELS[l]).join(" + ")} (change on the Plan tab).`
+    ? `Showing drills that suit ${levels.map((l) => LEVELS[l]).join(" + ")}, ${players} players (change on the Plan tab).`
     : "Showing all drills. Pick levels on the Plan tab to filter.";
   $("lib-filters").innerHTML = CATEGORIES.map(([k, n]) =>
     `<button class="chip" data-cat="${k}" aria-pressed="${k === libCat}">${n}</button>`).join("");
@@ -357,8 +382,9 @@ function renderLibrary() {
       <div class="block">${esc(cat(d))} · ${esc(d.type)}</div>
       <details class="drill"><summary>
         <div class="name">${esc(d.name)}</div>
-        <div class="lvl">${lv(d)}</div>
+        <div class="lvl">${lv(d)}${groupFit(d, players) === 0 ? `<span class="unfit">Not for ${players} players</span>` : ""}</div>
         <p class="cues">${esc(d.summary)}</p>
+        ${groupNote(d, players)}
         ${levelNotes(d, (levels.length ? levels : [0, 1, 2, 3]).filter((l) => d.levelNotes[l]), false)}
         <span class="more">Show how to run it</span>
       </summary>${drillBody(d)}</details></div>`).join("")
