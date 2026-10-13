@@ -21,7 +21,7 @@ Live: https://shanmarkusev.github.io/tennis-planner/
 - Drills must be doable by the **weakest** selected level; drills that also stretch
   the strongest level are preferred. Every drill carries a note for each level in its range.
   A selected level outside that range gets the nearest level's note with a "step it up" or "make it easier" cue.
-- Fixed blocks: warm-up 10', two 5' water breaks, cool-down 5', serve 15' (optional),
+- Fixed blocks: warm-up 10', two 5' water breaks, cool-down 5',
   serve 10' (optional, capped), game 20' (optional). The rest is split across forehand (static → moving),
   backhand (static → moving), net/movement and, if there's time, a live rally block.
   Lower groups get more static time; higher groups more moving/live time.
