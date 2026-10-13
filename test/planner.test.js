@@ -1,6 +1,6 @@
 // Sanity checks for buildSession across every level combo × toggle × seed.
 import assert from "node:assert/strict";
-import { buildSession, totalMinutes, planToText, noteFor, groupFit, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS } from "../planner.js";
+import { buildSession, totalMinutes, planToText, noteFor, groupFit, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, alternativesFor, swapDrill } from "../planner.js";
 import { DRILLS } from "../drills.js";
 
 const combos = [];
@@ -53,6 +53,37 @@ for (const levels of combos)
         n++;
       }
 
+// Swapping one block changes only that block's drill and never creates a repeat.
+let swaps = 0;
+for (const levels of combos)
+  for (const players of GROUP_SIZES)
+    for (let seed = 1; seed <= 5; seed++) {
+      const opts = { levels, players, serve: true, game: 20, drills: DRILLS };
+      const plan = buildSession({ ...opts, seed });
+      plan.forEach((it, i) => {
+        if (it.kind !== "drill") return;
+        const alts = alternativesFor(plan, i, opts);
+        const next = swapDrill(plan, i, opts, { seed: seed * 31 + i });
+        const ctx = JSON.stringify({ levels, players, seed, i });
+        assert.equal(next.length, plan.length, ctx);
+        next.forEach((x, j) => {
+          assert.equal(x.minutes, plan[j].minutes, ctx);
+          assert.equal(x.label, plan[j].label, ctx);
+          if (j !== i) assert.equal(x.drill, plan[j].drill, `other block changed ${ctx}`);
+        });
+        if (alts.length) {
+          assert.notEqual(next[i].drill.id, it.drill.id, `swap did nothing ${ctx}`);
+          assert.ok(it.categories.includes(next[i].drill.category), `wrong block type ${ctx}`);
+          assert.ok(next[i].drill.minLevel <= Math.min(...levels), `too hard ${ctx}`);
+          swaps++;
+        }
+        const ids = next.filter((x) => x.drill).map((x) => x.drill.id);
+        assert.equal(new Set(ids).size, ids.length, `repeat after swap ${ctx}`);
+        // choosing a specific drill
+        if (alts[0]) assert.equal(swapDrill(plan, i, opts, { drill: alts[0] })[i].drill.id, alts[0].id, ctx);
+      });
+    }
+
 // Same seed → same plan; different seeds → variety.
 const a = buildSession({ levels: [1, 2], serve: true, game: 20, drills: DRILLS, seed: 7 });
 const b = buildSession({ levels: [1, 2], serve: true, game: 20, drills: DRILLS, seed: 7 });
@@ -76,4 +107,4 @@ const count = (recent) => {
 const fresh = count([]), recent = count([target]);
 assert.ok(recent < fresh / 2, `recent penalty fresh=${fresh} recent=${recent}`);
 
-console.log(`✓ ${n} plans valid · determinism ok · recent penalty ${target} ${fresh}→${recent}/300`);
+console.log(`✓ ${n} plans valid · ${swaps} swaps ok · determinism ok · recent penalty ${target} ${fresh}→${recent}/300`);

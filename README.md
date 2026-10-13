@@ -14,6 +14,7 @@ Live: https://shanmarkusev.github.io/tennis-planner/
   - how to organise **that many players** (lines, pairs, rotations, what waiting players do)
   - how to run it **for each selected level**
   - source links
+- **Swap a single block:** each drill has **↻ Swap**, which picks another drill that fits the same block, levels and group size, and **Choose…** to pick one yourself. The rest of the plan and its timing stay the same, and no drill is repeated.
 - **Drills tab:** browse the whole library (75 drills), filtered by the selected levels and by category.
 - **History tab:** the last 10 saved sessions.
 
@@ -90,7 +91,7 @@ those sites are copyrighted, so the app draws its own diagrams. Use `image_url` 
 ## Develop
 ```sh
 npm install
-npm test                       # 2,700 generated plans sanity-checked
+npm test                       # 2,700 generated plans + 1,800 single-block swaps checked
 python3 -m http.server 8000    # http://localhost:8000
 ```
 `.env` (gitignored) needs `SUPABASE_DB_URL` = Supabase **Session pooler** URI.

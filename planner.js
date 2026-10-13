@@ -65,18 +65,27 @@ function weight(d, lo, hi, recent, players) {
   return w;
 }
 
-function pick(drills, slot, lo, hi, used, recent, players, rand) {
+// Drills that can fill `slot`, loosening the rules step by step if nothing fits.
+function candidates(drills, slot, lo, used, players) {
   const ok = (d) => !used.has(d.id) && d.minLevel <= lo && slot.categories.includes(d.category);
   const fits = (d) => ok(d) && groupFit(d, players) > 0;
   let pool = drills.filter((d) => fits(d) && (!slot.type || d.type === slot.type));
   if (!pool.length) pool = drills.filter(fits); // relax the static/moving split
   if (!pool.length) pool = drills.filter(ok); // relax the group-size fit
   if (!pool.length) pool = drills.filter((d) => !used.has(d.id) && slot.categories.includes(d.category));
+  return pool;
+}
+
+function choose(pool, ws, rand) {
   if (!pool.length) return null;
-  const ws = pool.map((d) => weight(d, lo, hi, recent, players));
   let r = rand() * ws.reduce((a, b) => a + b, 0);
   for (let i = 0; i < pool.length; i++) if ((r -= ws[i]) < 0) return pool[i];
   return pool[pool.length - 1];
+}
+
+function pick(drills, slot, lo, hi, used, recent, players, rand) {
+  const pool = candidates(drills, slot, lo, used, players);
+  return choose(pool, pool.map((d) => weight(d, lo, hi, recent, players)), rand);
 }
 
 /**
@@ -116,7 +125,8 @@ export function buildSession({ levels, serve, game, players = 6, drills, recentD
   for (const b of blocks) {
     const drill = pick(drills, b, lo, hi, used, recent, players, rand);
     if (drill) used.add(drill.id);
-    items.push({ kind: "drill", label: b.label, minutes: b.minutes, drill });
+    // categories/type are kept so a single block can be swapped later
+    items.push({ kind: "drill", label: b.label, minutes: b.minutes, categories: b.categories, type: b.type, drill });
   }
 
   // Water breaks: insert before the block whose start is closest to 40' and 80'
@@ -139,6 +149,35 @@ export function buildSession({ levels, serve, game, players = 6, drills, recentD
     start += it.minutes;
   }
   return items;
+}
+
+/**
+ * Other drills that could fill plan[index], best matches first. Drills already
+ * used elsewhere in the plan are excluded so swapping never creates a repeat.
+ */
+export function alternativesFor(plan, index, { levels, players = 6, drills, recentDrillIds = [] }) {
+  const it = plan[index];
+  if (it?.kind !== "drill" || !it.categories) return [];
+  const lo = Math.min(...levels), hi = Math.max(...levels);
+  const used = new Set(plan.filter((p) => p.drill).map((p) => p.drill.id));
+  const recent = new Set(recentDrillIds);
+  return candidates(drills, it, lo, used, players)
+    .map((d) => ({ d, w: weight(d, lo, hi, recent, players) }))
+    .sort((a, b) => b.w - a.w || a.d.name.localeCompare(b.d.name))
+    .map(({ d }) => d);
+}
+
+/** A copy of `plan` with only plan[index]'s drill replaced (or `drill` if given). */
+export function swapDrill(plan, index, opts, { seed = 1, drill } = {}) {
+  let next = drill;
+  if (!next) {
+    const pool = alternativesFor(plan, index, opts);
+    const lo = Math.min(...opts.levels), hi = Math.max(...opts.levels);
+    const recent = new Set(opts.recentDrillIds || []);
+    next = choose(pool, pool.map((d) => weight(d, lo, hi, recent, opts.players ?? 6)), rng(seed));
+  }
+  if (!next) return plan;
+  return plan.map((it, i) => (i === index ? { ...it, drill: next } : it));
 }
 
 // Instruction for level `l`. Drills only carry notes for their own level range; a

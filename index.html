@@ -57,6 +57,11 @@
   .group { margin: 6px 0 0; font-size: .85rem; border-left: 3px solid var(--break); padding: 2px 0 2px 9px; }
   .group b { color: var(--break); }
   .unfit { font-size: .75rem; font-weight: 600; color: var(--warn-ink); background: var(--warn-bg); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
+  .swap-row { display: flex; gap: 8px; margin-top: 10px; }
+  .btn.small { min-height: 38px; padding: 6px 12px; font-size: .88rem; flex: none; }
+  .choose { flex: 1; min-width: 0; width: 100%; text-overflow: ellipsis; min-height: 38px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: .88rem; padding: 0 10px; }
+  .item.swapped { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
   .toggles { display: grid; gap: 4px; margin-top: 16px; }
   .toggle { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; cursor: pointer; min-height: 44px; }
   .toggle input { appearance: none; width: 46px; height: 28px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; transition: background .15s; margin: 0; flex: none; }
@@ -77,7 +82,7 @@
   .summary strong { font-size: 1.05rem; }
   .summary span { color: var(--muted); font-size: .85rem; }
   ol.timeline { list-style: none; padding: 0; margin: 0 0 14px; }
-  .item { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border); }
+  .item { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-top: 1px solid var(--border); }
   .item:first-child { border-top: 0; padding-top: 0; }
   .time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: .9rem; padding-top: 2px; }
   .block { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
@@ -139,11 +144,11 @@
   details.hist summary::-webkit-details-marker { display: none; }
   details.hist summary span { color: var(--muted); font-size: .85rem; }
   details.hist ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: .9rem; }
-  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .9rem; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 14px; font-size: .9rem; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100vw - 32px); text-align: center; }
   .toast.show { opacity: 1; }
   [hidden] { display: none !important; }
   @media print {
-    header .tabs, #settings, .btn-row, .banner { display: none !important; }
+    header .tabs, #settings, .btn-row, .banner, .swap-row { display: none !important; }
     .card { box-shadow: none; border: 0; padding: 0; }
   }
 </style>
@@ -206,7 +211,7 @@
 
 <script type="module">
 import { DRILLS } from "./drills.js";
-import { LEVELS, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, buildSession, planToText, noteFor, groupFit } from "./planner.js";
+import { LEVELS, SESSION_MINUTES, GROUP_SIZES, GAME_OPTIONS, buildSession, planToText, noteFor, groupFit, alternativesFor, swapDrill } from "./planner.js";
 import { loadDrills, loadHistory, saveSession, recentDrillIds } from "./db.js";
 import { courtSVG, DIAGRAM_LEGEND } from "./diagram.js";
 
@@ -285,6 +290,31 @@ function levelNotes(d, levels, single) {
   return `<ul class="mixed">${rows.map(([l, n]) => `<li><b>${LEVELS[l]}:</b> ${esc(n)}</li>`).join("")}</ul>`;
 }
 
+// Swap just this block: ↻ picks another fitting drill, the list lets the coach choose.
+function swapControls(plan, i, opts) {
+  const alts = alternativesFor(plan, i, opts);
+  if (!alts.length) return "";
+  const lv = (d) => d.minLevel === d.maxLevel ? LEVELS[d.minLevel] : `${LEVELS[d.minLevel]}–${LEVELS[d.maxLevel]}`;
+  return `<div class="swap-row">
+    <button class="btn secondary small" data-swap="${i}" aria-label="Swap this drill">↻ Swap</button>
+    <select class="choose" data-choose="${i}" aria-label="Choose a different drill">
+      <option value="">Choose… (${alts.length} options)</option>
+      ${alts.map((d) => `<option value="${esc(d.id)}">${esc(d.name)} · ${lv(d)}</option>`).join("")}
+    </select>
+  </div>`;
+}
+
+function replaceBlock(i, drill) {
+  const opts = { ...state.opts, drills: state.drills, recentDrillIds: recentDrillIds(state.history) };
+  state.plan = swapDrill(state.plan, i, opts, { drill, seed: (Math.random() * 2 ** 32) >>> 0 });
+  state.saved = false;
+  render();
+  // keep the swapped block in view and show what it became
+  const li = $("timeline").children[i];
+  li?.classList.add("swapped");
+  toast(`${state.plan[i].label}: ${state.plan[i].drill.name}`);
+}
+
 // How to organise this many players for the drill.
 function groupNote(d, players) {
   const g = d.groupNotes?.[players];
@@ -322,7 +352,8 @@ function render() {
     const c = CAT_COLORS[it.kind === "break" ? "break" : it.drill?.category] || "var(--muted)";
     return `<i style="width:${(it.minutes / SESSION_MINUTES) * 100}%;background:${c}" title="${esc(it.label)}"></i>`;
   }).join("");
-  $("timeline").innerHTML = plan.map((it) => {
+  const swapOpts = { ...opts, drills: state.drills, recentDrillIds: recentDrillIds(state.history) };
+  $("timeline").innerHTML = plan.map((it, i) => {
     if (it.kind === "break")
       return `<li class="item break"><div class="time">${fmt(it.start)}</div><div><div class="block">Break</div><div class="name">💧 Water break <span class="mins">· ${it.minutes}'</span></div></div></li>`;
     const d = it.drill || {};
@@ -335,6 +366,7 @@ function render() {
         ${levelNotes(d, opts.levels, !mixed)}
         <span class="more">Show how to run it</span>
       </summary>${drillBody(d)}</details>
+      ${swapControls(plan, i, swapOpts)}
     </div></li>`;
   }).join("");
   $("save").disabled = !state.online || state.saved;
@@ -411,6 +443,15 @@ function toast(msg) {
 
 // ── events ──
 $("generate").onclick = generate;
+$("timeline").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-swap]");
+  if (b) replaceBlock(+b.dataset.swap);
+});
+$("timeline").addEventListener("change", (e) => {
+  const sel = e.target.closest("[data-choose]");
+  if (!sel?.value) return;
+  replaceBlock(+sel.dataset.choose, state.drills.find((d) => d.id === sel.value));
+});
 $("shuffle").onclick = generate;
 $("copy").onclick = async () => {
   try { await navigator.clipboard.writeText(planToText(state.plan, state.opts)); toast("Copied"); }
